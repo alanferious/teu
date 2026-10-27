@@ -252,7 +252,7 @@ details[open] > summary::before { transform: rotate(45deg); }
 .cols { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px 48px; padding-bottom: 18px; }
 .cols h4 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin: 16px 0 4px; }
 .cols ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
-.num-hl { font-weight: 700; background: linear-gradient(transparent 62%, var(--hl) 62%); }
+.num-hl { font-weight: 700; background: var(--hl); padding: 0 2px; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size: 13.5px; border: 1px solid var(--rule); padding: 1px 8px; }
 .sources { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
