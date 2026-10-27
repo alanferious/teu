@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TEU · IB Economics HL</title>
+  <meta name="description" content="IB Economics HL revision: course notes for Units 1–4, flashcards, diagram drills, and a bank of 42 rated real-world examples for the global economy. Runs in the browser, offline too.">
+  <meta name="theme-color" content="#1C2126">
+  <link rel="icon" href="icons/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="TEU · IB Economics HL revision">
+  <meta property="og:description" content="Course notes, flashcards, diagram drills and 42 rated real-world examples, stacked like cargo.">
+  <meta property="og:url" content="https://alanferious.github.io/teu/">
+  <meta property="og:image" content="https://alanferious.github.io/teu/icons/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="TEU wordmark beside a bay plan of stacked containers">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preload" href="fonts/BarlowSemiCondensed-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/BarlowSemiCondensed-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-world="port">
+  <a class="skip" href="#main">Skip to the work</a>
+
+  <header class="top">
+    <div class="wrap top-in">
+      <a class="mark" href="#/notes" data-view="notes" aria-label="TEU, back to course notes">TEU<span>IB Economics HL</span></a>
+      <div class="secs" role="group" aria-label="Section">
+        <button class="sec" data-sec="course">Course notes</button>
+        <button class="sec" data-sec="bank">Evidence bank</button>
+      </div>
+      <p class="top-stats" id="stats" aria-live="polite"></p>
+    </div>
+  </header>
+
+  <div class="ticker" id="ticker" hidden></div>
+
+  <nav class="modes" aria-label="Study modes">
+    <div class="wrap" role="tablist">
+      <button class="mode" role="tab" id="tab-notes" data-view="notes">Notes</button>
+      <button class="mode" role="tab" id="tab-cards" data-view="cards">Flashcards<small id="cardsBadge"></small></button>
+      <button class="mode" role="tab" id="tab-diagrams" data-view="diagrams">Diagram drill<small id="diagBadge"></small></button>
+      <button class="mode" role="tab" id="tab-quiz" data-view="quiz">Term quiz</button>
+      <button class="mode" role="tab" id="tab-library" data-view="library">Library</button>
+      <button class="mode" role="tab" id="tab-drill" data-view="drill">Drill<small id="dueBadge"></small></button>
+      <button class="mode" role="tab" id="tab-numbers" data-view="numbers">Number recall</button>
+      <button class="mode" role="tab" id="tab-match" data-view="match">Pick the example</button>
+      <button class="mode" role="tab" id="tab-write" data-view="write">Write &amp; check</button>
+    </div>
+  </nav>
+
+  <section class="bay wrap" id="bay" aria-label="Bay plan: Unit 4 examples by subtopic" hidden></section>
+
+  <div class="wrap layout" id="layout">
+    <aside class="rail" id="rail" aria-label="Choose a unit or subtopic"></aside>
+    <main id="main" tabindex="-1">
+
+      <section class="view" id="view-notes" hidden>
+        <div class="view-head"><h1 id="notesTitle">Course notes</h1><p class="sub" id="notesSub"></p></div>
+        <div class="toolbar"><input class="field" id="csearch" type="search" placeholder="Search terms, definitions and ideas" aria-label="Search course notes"></div>
+        <div id="notes"></div>
+      </section>
+
+      <section class="view" id="view-cards" hidden>
+        <div class="view-head"><h1>Flashcards</h1><p class="sub">Every definition, on spaced repetition. Say it out loud, flip, and grade yourself against the exact wording: definitions only earn marks when they're precise.</p></div>
+        <div class="progress-line"><span id="cardsInfo"></span><span class="opts"><label><input type="checkbox" id="cardsRev"> Show the definition first</label><label><input type="checkbox" id="cardsAll"> Include cards that aren't due</label></span></div>
+        <div id="cards-deck"></div>
+      </section>
+
+      <section class="view" id="view-diagrams" hidden>
+        <div class="view-head"><h1>Diagram drill</h1><p class="sub">Sketch the diagram on paper from memory: axes, curves, equilibrium, labels and any shading. Then flip and compare. Missing labels are where diagram marks usually go.</p></div>
+        <div class="progress-line"><span id="diagInfo"></span><span class="opts"><label><input type="checkbox" id="diagAll"> Include diagrams that aren't due</label></span></div>
+        <div id="diag-deck"></div>
+      </section>
+
+      <section class="view" id="view-quiz" hidden>
+        <div class="view-head"><h1>Term quiz</h1><p class="sub">Read the definition and pick the term it defines. Wrong options come from the same unit, so you have to tell close terms apart.</p></div>
+        <div id="quiz"></div>
+      </section>
+
+      <section class="view" id="view-library" hidden>
+        <div id="manifest"></div>
+        <div class="list-head">
+          <h2>Full manifest</h2>
+          <div class="toolbar">
+            <input class="field" id="search" type="search" placeholder="Search titles, countries, concepts" aria-label="Search examples">
+            <div class="chips" id="tierChips" role="group" aria-label="Filter by tier"></div>
+            <select class="field" id="sort" aria-label="Sort examples">
+              <option value="score">Best rated first</option>
+              <option value="recent">Most recent first</option>
+              <option value="topic">By subtopic</option>
+              <option value="due">Weakest first</option>
+            </select>
+          </div>
+        </div>
+        <div id="cards"></div>
+        <details class="rubric">
+          <summary>How each example is rated</summary>
+          <div class="in">
+            <table class="tbl">
+              <thead><tr><th>Criterion</th><th class="n">Weight</th><th>What a 5 looks like</th></tr></thead>
+              <tbody>
+                <tr><td>Relevance</td><td class="n">30%</td><td>Illustrates the syllabus concept directly, with no stretching needed.</td></tr>
+                <tr><td>Evaluation</td><td class="n">30%</td><td>Has clear winners and losers, short-run vs long-run effects, or contested evidence you can weigh up.</td></tr>
+                <tr><td>Data</td><td class="n">25%</td><td>Specific, checkable numbers: rates, values, percentage changes, dates.</td></tr>
+                <tr><td>Recency</td><td class="n">15%</td><td>2025–26 scores 5, 2023–24 scores 4, 2020–22 scores 3, the 2010s score 2.</td></tr>
+              </tbody>
+            </table>
+            <p class="tiers-key"><span class="tierbox tier-S">S</span>95–100 <span class="tierbox tier-A">A</span>88–94 <span class="tierbox tier-B">B</span>80–87 <span class="tierbox tier-C">C</span>below 80</p>
+            <p class="note">Recency counts for less than the rest because examiners still reward a strong older case. A classic that scores 5 on everything else still reaches tier A. These are our ratings, not examiner scores.</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="view" id="view-drill" hidden>
+        <div class="view-head"><h1>Drill</h1><p class="sub">Spaced repetition. Say the story, the three numbers and the “but” out loud, then flip and grade yourself honestly. Containers you know come back less often.</p></div>
+        <div class="progress-line"><span id="drillInfo"></span><span class="opts"><label><input type="checkbox" id="drillAll"> Include examples that aren't due</label></span></div>
+        <div id="drill"></div>
+      </section>
+
+      <section class="view" id="view-numbers" hidden>
+        <div class="view-head"><h1>Number recall</h1><p class="sub">Each example's three key numbers, one at a time. Type the number that matches the description. Units don't matter, so “45” counts for “45%”, and answers within 1% are accepted.</p></div>
+        <div id="numbers"></div>
+      </section>
+
+      <section class="view" id="view-match" hidden>
+        <div class="view-head"><h1>Pick the example</h1><p class="sub">In the exam you have to pick the right example fast. Each question names a concept; choose the case that illustrates it.</p></div>
+        <div id="match"></div>
+      </section>
+
+      <section class="view" id="view-write" hidden>
+        <div class="view-head"><h1>Write &amp; check</h1><p class="sub">Practise a Paper 1 (b)-style paragraph built on one example. The checker reads it for the parts examiners look for, then you place it in a markband yourself. Nothing leaves this page.</p></div>
+        <div class="write">
+          <label class="pick-l" for="writePick">Example</label>
+          <select class="field" id="writePick"></select>
+          <p class="question" id="writeQ"></p>
+          <details class="rubric" id="peek"><summary>Peek at the manifest</summary><div class="in" id="peekBody"></div></details>
+          <textarea class="field" id="essay" aria-label="Your answer" placeholder="Define the key term, explain with a diagram in mind, apply the example's numbers, then evaluate: who gains, who loses, short run vs long run, and a final judgement."></textarea>
+          <div class="toolbar">
+            <button class="btn primary" id="checkBtn">Check my paragraph</button>
+            <span class="note" id="wordCount">0 words</span>
+            <span class="note" id="draftNote"></span>
+          </div>
+          <div id="checkOut"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <details class="progress-tools" id="progressTools">
+        <summary>Your progress</summary>
+        <div class="in">
+          <p>Progress is saved in this browser only. To move it to another computer, copy it here and paste it there.</p>
+          <div class="toolbar">
+            <button class="btn" id="copyProgress">Copy progress</button>
+            <button class="btn" id="saveProgress">Save as file</button>
+            <label class="btn file-btn">Load file<input type="file" id="loadProgress" accept=".json,application/json"></label>
+          </div>
+          <label class="pick-l" for="pasteBox">Paste progress from another computer</label>
+          <textarea class="field small" id="pasteBox" placeholder="Paste the copied progress here"></textarea>
+          <div class="toolbar"><button class="btn" id="pasteProgress">Add to my progress</button><span class="note" id="progressNote" role="status"></span></div>
+        </div>
+      </details>
+      <p>Course notes follow the IB Economics guide (first assessment 2022) but are not official IB material, and TEU is not affiliated with the International Baccalaureate. Facts in the evidence bank were checked against the linked sources as of <span class="num">26 October 2026</span>; policies change, so check the newest figures before an exam. Fonts: Barlow Semi Condensed, Saira Stencil One and DotGothic16 (SIL Open Font License).</p>
+    </div>
+  </footer>
+
+  <div id="sr" class="sr-only" role="status" aria-live="polite"></div>
+
+  <script src="data/examples.js"></script>
+  <script src="data/course.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

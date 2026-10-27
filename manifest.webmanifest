@@ -1,0 +1,13 @@
+{
+  "name": "TEU · IB Economics HL",
+  "short_name": "TEU",
+  "description": "IB Economics HL course notes, flashcards, diagram drills and 42 rated real-world examples.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#E4E6E3",
+  "theme_color": "#1C2126",
+  "icons": [
+    { "src": "icons/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
