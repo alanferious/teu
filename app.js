@@ -116,6 +116,20 @@ DATA.forEach(e => {
 });
 const BY_ID = Object.fromEntries(DATA.map(e => [e.id, e]));
 
+// Short names for the bay plan, where a container is about 16 characters wide
+const BAY_NAME = {
+  "china-rare-earth-export-controls": "Rare earths", "eu-steel-quota-2026": "EU steel wall", "australia-china-barley-wine": "Barley & wine",
+  "eu-mercosur-agreement": "EU–Mercosur", "afcfta": "AfCFTA", "wto-appellate-body-crisis": "WTO no judges", "eu-cbam": "CBAM",
+  "brexit-uk-eu-reset": "Brexit checks", "argentina-peso-band": "Peso halved", "egypt-float-ras-el-hekma": "Egypt float",
+  "turkey-lira-inflation": "Lira inflation", "china-trillion-surplus": "China surplus", "uk-brexit-pound-jcurve": "Pound J-curve",
+  "guyana-vs-sri-lanka-hdi-gap": "Same HDI", "india-big-economy-poor-people": "India's poor", "zambia-common-framework": "Zambia debt",
+  "botswana-diamonds-institutions": "Botswana gems", "bangladesh-garments-ldc-graduation": "Garment growth", "vietnam-export-led-umic": "Doi Moi",
+  "grameen-microfinance": "Microcredit", "sudan-war-development-reversal": "Sudan's war", "afghanistan-women-exclusion": "Afghan girls",
+  "chile-cherries-china": "Chile cherries", "morocco-car-exports": "Moroccan cars", "new-zealand-china-fta-dairy": "Kiwi milk",
+  "mission-300-africa-electricity": "Mission 300", "costa-rica-forest-payments": "Paid forests", "china-extreme-poverty-declared-over": "China poverty",
+};
+DATA.forEach(e => { e.bay = BAY_NAME[e.id] || e.mem.tag; });
+
 // Container codes, ISO 6346 style: three owner letters, U for freight, then bay and slot
 {
   const STOP = /^(a|an|the|of|and|vs|to|in|on|for|at|by|with|its|s)$/i;
@@ -228,7 +242,9 @@ function previewInterval(id, g) {
   const c = prog(id) || { box: 0 };
   const box = g === "again" ? 0 : g === "hard" ? Math.max(1, c.box) : g === "good" ? Math.min(5, c.box + 1) : Math.min(5, c.box + 2);
   const ms = INTERVALS[box] * (g === "hard" ? .6 : 1);
-  return ms < DAY ? Math.round(ms / 60000) + " min" : Math.round(ms / DAY) + (Math.round(ms / DAY) === 1 ? " day" : " days");
+  if (ms < 3600000) return Math.round(ms / 60000) + " min";
+  if (ms < DAY) return Math.round(ms / 3600000) + " hours";
+  return Math.round(ms / DAY) + (Math.round(ms / DAY) === 1 ? " day" : " days");
 }
 const minutes = (n, per) => { const m = Math.max(1, Math.round(n * per / 60)); return n ? `about ${m} min` : ""; };
 
@@ -254,8 +270,8 @@ function chgHTML(v, cls = "") {
 }
 function spark(id) {
   const h = prog(id)?.h || [];
-  if (!h.length) return "";
-  const pts = [IPO, ...h].slice(-12), W = 88, H = 26;
+  if (h.length < 2) return "";
+  const pts = h.slice(-12), W = 88, H = 26;
   const d = pts.map((v, i) => `${i ? "L" : "M"}${(i / (pts.length - 1) * (W - 2) + 1).toFixed(1)} ${(H - 2 - (v / 100) * (H - 4)).toFixed(1)}`).join(" ");
   const up = pts[pts.length - 1] >= pts[pts.length - 2];
   return `<svg class="spark ${up ? "up" : "dn"}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -385,7 +401,7 @@ function renderBay() {
   const loaded = DATA.filter(e => prog(e.id)).length, due = DATA.filter(e => prog(e.id) && isDue(e.id)).length;
   const box = e => {
     const st = stateOf(e.id), cls = `box tier-${e.tier} ${st}${prog(e.id) && isDue(e.id) ? " due" : ""}${lastMoved === e.id && !calm() ? " drop" : ""}`;
-    return `<button class="${cls}" data-box="${esc(e.id)}" ${compact ? 'tabindex="-1"' : ""} aria-pressed="${!compact && S.sel === e.id}" title="${esc(e.code + " · " + e.title + " · tier " + e.tier + " · " + stateLabel[st])}">${esc(e.mem.tag)}</button>`;
+    return `<button class="${cls}" data-box="${esc(e.id)}" ${compact ? 'tabindex="-1"' : ""} aria-pressed="${!compact && S.sel === e.id}" title="${esc(e.code + " · " + e.title + " · tier " + e.tier + " · " + stateLabel[st])}">${esc(e.bay)}</button>`;
   };
   el.innerHTML = `<div class="bay-head"><h2>Bay plan · Unit 4</h2><p>${DATA.length} containers · ${loaded} loaded · ${due} due${S.topic !== "all" ? ` · showing bay ${S.topic}` : ""}</p>${S.topic !== "all" ? `<button class="btn" data-topic="all">All bays</button>` : ""}</div>
     <div class="plan-scroll"><div class="plan" style="--stack:${stack}">${cols.map((c, i) => `<div class="col" ${S.topic === TOPICS[i].n ? "data-on" : ""}>${c.map(box).join("")}</div>`).join("")}</div>
@@ -466,11 +482,11 @@ function renderDrill() {
     return;
   }
   const e = BY_ID[drillCur];
-  $("#drill").innerHTML = `<div class="flash tier-${e.tier}">
+  $("#drill").innerHTML = `<div class="flash tier-${e.tier}${drillFlipped ? " wide" : ""}">
     <div class="head"><span class="man-code">${esc(e.code)}</span>${tierBox(e)}<span>${esc(e.topics.join(" · "))} · ${esc(e.region)} · ${esc(e.years)}</span>${stateTag(e.id)}</div>
     <h2 class="title">${esc(e.mem.tag)}</h2>
     <p class="note">${esc(e.title)}</p>
-    ${drillFlipped ? `<div>${storyHTML(e.mem)}<p class="use"><b>Use it for:</b> ${esc(e.mem.use)}</p></div>${numsHTML(e.mem)}${butHTML(e.mem)}${moreHTML(e)}${gradeRow("data-grade", e.id)}`
+    ${drillFlipped ? `<div class="ans"><div>${storyHTML(e.mem)}<p class="use"><b>Use it for:</b> ${esc(e.mem.use)}</p></div><div>${numsHTML(e.mem)}${butHTML(e.mem)}</div></div>${gradeRow("data-grade", e.id)}${moreHTML(e)}`
       : `<p class="prompt">Before you flip, say out loud: <b>the story</b>, <b>the three numbers</b> and <b>the “but”</b>. Use it for: ${esc(e.mem.use)}.</p>${flipButton('id="flipBtn"')}`}
   </div>`;
 }
@@ -668,9 +684,10 @@ function boardHead(defs, label) {
   return `<div class="board-head"><span class="lbl">${esc(label)}</span><span class="ix">${fmt(ix)}</span>${chgHTML(defs.length && listed ? chg : null)}<span class="note">${listed} of ${defs.length} terms listed. A term lists when you first grade it in Flashcards, and its price is how well you recall it.</span></div>`;
 }
 function listingHTML(defs) {
-  return `<table class="listing"><thead><tr><th>Symbol</th><th>Term and definition</th><th class="n" style="text-align:right">Price</th><th style="text-align:right">Change</th><th class="sp">Trend</th></tr></thead><tbody>${defs.map(d => {
+  const trend = defs.some(d => (prog(d.id)?.h || []).length >= 2);
+  return `<table class="listing"><thead><tr><th>Symbol</th><th>Term and definition</th><th class="n" style="text-align:right">Price</th><th style="text-align:right">Change</th>${trend ? `<th class="sp">Trend</th>` : ""}</tr></thead><tbody>${defs.map(d => {
     const p = priceOf(d.id);
-    return `<tr><td class="tk">${esc(d.tk)}</td><td><div class="term">${esc(d.t)}${hlMark(d.hl && !CT[d.n].hl)}</div><div class="d">${esc(d.d)}</div></td><td class="px${p == null ? " ipo" : ""}">${p == null ? "IPO" : fmt(p)}</td><td class="cg">${p == null ? "" : chgHTML(changeOf(d.id))}</td><td class="sp">${spark(d.id)}</td></tr>`;
+    return `<tr><td class="tk">${esc(d.tk)}</td><td><div class="term">${esc(d.t)}${hlMark(d.hl && !CT[d.n].hl)}</div><div class="d">${esc(d.d)}</div></td><td class="px${p == null ? " ipo" : ""}">${p == null ? "IPO" : fmt(p)}</td><td class="cg">${p == null ? "" : chgHTML(changeOf(d.id))}</td>${trend ? `<td class="sp">${spark(d.id)}</td>` : ""}</tr>`;
   }).join("")}</tbody></table>`;
 }
 function diagramFig(g) {

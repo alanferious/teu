@@ -112,6 +112,9 @@ main:focus { outline: none; }
 .view-head { margin-bottom: 18px; max-width: 72ch; }
 .view-head h1 { font-size: 34px; font-weight: 700; letter-spacing: -.01em; }
 .view-head .sub { margin-top: 6px; color: var(--ink-2); }
+body[data-sec="bank"] .view-head { display: flex; gap: 6px 18px; align-items: baseline; flex-wrap: wrap; max-width: none; margin-bottom: 12px; }
+body[data-sec="bank"] .view-head h1 { font-size: 26px; }
+body[data-sec="bank"] .view-head .sub { margin-top: 0; flex: 1 1 40ch; max-width: 100ch; }
 .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .progress-line { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center; padding: 10px 0; border-top: 1px solid var(--rule-2); border-bottom: 1px solid var(--rule); margin-bottom: 20px; font-size: 14.5px; color: var(--ink-2); }
 .progress-line .opts { display: flex; gap: 18px; flex-wrap: wrap; }
@@ -176,7 +179,11 @@ select.field { cursor: pointer; }
 .plan-scroll { overflow-x: auto; scrollbar-width: thin; }
 .plan, .bay-lbls { display: grid; grid-template-columns: repeat(10, minmax(96px, 1fr)); gap: 8px; min-width: 1000px; }
 .plan { align-items: end; border-bottom: 3px solid var(--ink); padding-bottom: 3px; min-height: calc(var(--stack, 6) * 33px + 6px); }
-.bay[data-compact] .plan { min-height: calc(var(--stack, 6) * 15px + 6px); }
+.bay[data-compact] { padding-top: 14px; padding-bottom: 6px; }
+.bay[data-compact] .plan { min-height: calc(var(--stack, 6) * 10px + 4px); }
+.bay[data-compact] .col { gap: 2px; }
+.bay[data-compact] .bay-lbl small { display: none; }
+.bay[data-compact] .bay-head { margin-bottom: 6px; }
 .col { display: flex; flex-direction: column-reverse; gap: 3px; transition: opacity .25s var(--ease-out); }
 .bay[data-filter] .col:not([data-on]) { opacity: .38; }
 .box { --paint: var(--stone); height: 30px; border: 1.5px solid var(--paint); background: transparent; color: var(--ink-2); font-size: 12.5px; font-weight: 600; text-align: left; padding: 0 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; }
@@ -186,7 +193,7 @@ select.field { cursor: pointer; }
 .box.mastered::after { content: ""; position: absolute; inset: 3px; border: 1.5px solid rgba(255, 255, 255, .8); pointer-events: none; }
 .box.due::before { content: ""; position: absolute; right: 0; top: 0; width: 9px; height: 9px; background: var(--ochre); }
 .box[aria-pressed="true"] { outline: 3px solid var(--ochre); outline-offset: 1px; z-index: 1; }
-.bay[data-compact] .box { height: 12px; font-size: 0; padding: 0; border-width: 1px; }
+.bay[data-compact] .box { height: 8px; font-size: 0; padding: 0; border-width: 1px; }
 .bay[data-compact] .box.due::before { width: 5px; height: 5px; }
 .bay[data-compact] .box.mastered::after { inset: 2px; }
 .box.drop { animation: drop .5s var(--ease-out); }
@@ -301,6 +308,10 @@ details[open] > summary::before { transform: rotate(45deg); }
 .cloze input { width: 150px; font-size: 21px; font-weight: 700; background: var(--panel); border: 0; border-bottom: 2px solid var(--ink); padding: 4px 6px; border-radius: 0; }
 .cloze input:focus { outline: none; border-bottom-color: var(--ochre); }
 .flash .man-code { font-size: 26px; }
+.flash.wide { max-width: none; }
+.ans { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 8px 48px; align-items: start; }
+.ans .story { margin-top: 0; }
+.ans .but { margin-top: 12px; }
 .flash .nums b { font-size: 28px; }
 
 /* ---------- Course notes ---------- */
@@ -450,7 +461,7 @@ body[data-world="board"] .chip[aria-pressed="true"] { background: var(--amber); 
   .topic .nm, .topic .ct, .topic .meter, .topic .idx { display: none; }
   .topic[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
   .topic[aria-pressed="true"] .n { color: var(--ground); }
-  .man, .cols { grid-template-columns: minmax(0, 1fr); }
+  .man, .cols, .ans { grid-template-columns: minmax(0, 1fr); }
   .defs > div, .mnem div { grid-template-columns: minmax(0, 1fr); }
   .grades { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .listing .d { max-width: none; }
@@ -464,6 +475,15 @@ body[data-world="board"] .chip[aria-pressed="true"] { background: var(--amber); 
   .nums div + div { border-left: 0; padding-left: 0; }
   .top-stats { display: none; }
   .mlist .hide-s { display: none; }
+  /* phones see the whole plan as a miniature; containers are picked from the list or a bay number */
+  .plan, .bay-lbls { grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; min-width: 0; }
+  .bay .plan { min-height: calc(var(--stack, 6) * 10px + 4px); }
+  .bay .col { gap: 2px; }
+  .bay .box { height: 8px; font-size: 0; padding: 0; border-width: 1px; pointer-events: none; }
+  .bay-lbl { font-size: 13px; padding: 6px 0; }
+  .bay-lbl small { display: none; }
+  .bay .box.due::before { width: 5px; height: 5px; }
+  .bay .legend { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
