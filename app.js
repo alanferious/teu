@@ -188,7 +188,7 @@ const CBY = Object.fromEntries([...CDEFS, ...CDIAG].map(x => [x.id, x]));
 const S = { view: "notes", sec: "course", topic: "all", ctopic: "all", tier: "all", q: "", cq: "", sort: "score", sel: null, ...pickUI(lsGet(UI_KEY, {})) };
 function pickUI(u) { const o = {}; if (u.ctopic && (u.ctopic === "all" || CT[u.ctopic] || /^u[1-4]$/.test(u.ctopic))) o.ctopic = u.ctopic; if (u.topic && (u.topic === "all" || TOPIC[u.topic])) o.topic = u.topic; if (u.sel && BY_ID[u.sel]) o.sel = u.sel; return o; }
 const saveUI = () => lsSet(UI_KEY, { ctopic: S.ctopic, topic: S.topic, sel: S.sel, tapePaused });
-let P = { cards: {}, numbers: { right: 0, total: 0 }, match: { right: 0, total: 0 }, quiz: { right: 0, total: 0 }, writes: [], rec: {}, updated: 0 };
+let P = { cards: {}, numbers: { right: 0, total: 0 }, match: { right: 0, total: 0 }, quiz: { right: 0, total: 0 }, writes: [], rec: {}, rwe: {}, updated: 0 };
 
 function mergeProgress(a, b) {
   const out = { cards: { ...a.cards }, numbers: a.numbers, match: a.match, quiz: a.quiz || { right: 0, total: 0 }, writes: [...(a.writes || [])], updated: Math.max(a.updated || 0, b.updated || 0) };
@@ -198,7 +198,8 @@ function mergeProgress(a, b) {
   }
   out.rec = { ...(a.rec || {}) };
   for (const [k, t] of Object.entries(b.rec || {})) out.rec[k] = Math.min(out.rec[k] || t, t);
-  if ((b.updated || 0) > (a.updated || 0)) { out.numbers = b.numbers || out.numbers; out.match = b.match || out.match; out.quiz = b.quiz || out.quiz; }
+  out.rwe = a.rwe || {};
+  if ((b.updated || 0) > (a.updated || 0)) { out.numbers = b.numbers || out.numbers; out.match = b.match || out.match; out.quiz = b.quiz || out.quiz; out.rwe = b.rwe || out.rwe; }
   const seen = new Set(out.writes.map(w => w.t + w.id));
   for (const w of b.writes || []) if (!seen.has(w.t + w.id)) out.writes.push(w);
   out.writes.sort((x, y) => x.t - y.t);
@@ -271,6 +272,7 @@ function applyWorld() {
   document.body.dataset.world = w;
   document.body.dataset.sec = S.sec;
   document.body.dataset.view = S.view;
+  $("#tab-rwe").hidden = S.sec !== "course" || w !== "board";
   document.querySelector('meta[name="theme-color"]').content = w === "board" ? "#000000" : getComputedStyle(document.documentElement).getPropertyValue("--bar").trim() || "#1C2126";
   renderTicker();
 }
@@ -330,13 +332,14 @@ function renderStats() {
     const badge = xs => { const n = xs.filter(x => inScope(x) && prog(x.id) && isDue(x.id)).length; return n ? String(n) : ""; };
     $("#cardsBadge").textContent = badge(CDEFS);
     $("#diagBadge").textContent = badge(CDIAG);
+    $("#rweBadge").textContent = TEUStocks.rweDue() || "";
     $("#dueBadge").textContent = "";
   } else {
     const loaded = DATA.filter(e => prog(e.id)).length;
     const due = DATA.filter(e => prog(e.id) && isDue(e.id)).length;
     $("#stats").innerHTML = `${DATA.length} containers · <b>${loaded}</b> loaded · <b>${due}</b> due`;
     $("#dueBadge").textContent = due ? String(due) : "";
-    $("#cardsBadge").textContent = $("#diagBadge").textContent = "";
+    $("#cardsBadge").textContent = $("#diagBadge").textContent = $("#rweBadge").textContent = "";
   }
 }
 
@@ -890,7 +893,7 @@ function pickQuiz(id) {
 }
 
 // ---------- Views ----------
-const SECTIONS = { course: ["notes", "cards", "diagrams", "quiz"], bank: ["library", "drill", "numbers", "match", "write"] };
+const SECTIONS = { course: ["notes", "cards", "diagrams", "quiz", "rwe"], bank: ["library", "drill", "numbers", "match", "write"] };
 const VIEWS = [...SECTIONS.course, ...SECTIONS.bank];
 function show(v) {
   if (!VIEWS.includes(v)) v = "notes";
@@ -902,13 +905,13 @@ function show(v) {
   renderAll();
 }
 function renderView() {
-  ({ notes: renderNotes, cards: () => renderDeck("cards"), diagrams: () => renderDeck("diagrams"), quiz: renderQuiz,
+  ({ notes: renderNotes, cards: () => renderDeck("cards"), diagrams: () => renderDeck("diagrams"), quiz: renderQuiz, rwe: () => TEUStocks.renderRwe($("#rwe")),
      library: renderLibrary, drill: renderDrill, numbers: renderNumbers, match: renderMatch, write: renderWritePick })[S.view]();
 }
 function ensureSel() { if (!S.sel || !BY_ID[S.sel] || !inTopic(BY_ID[S.sel])) S.sel = pool().sort((a, b) => b.score - a.score)[0]?.id || null; }
 function renderAll() { ensureSel(); applyWorld(); renderRail(); renderBay(); renderStats(); renderView(); saveUI(); }
 function setScope(key) {
-  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; DECKS.cards.sess = DECKS.cards.redo = DECKS.cards.undo = DECKS.diagrams.undo = null;
+  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; TEUStocks.resetRwe(); DECKS.cards.sess = DECKS.cards.redo = DECKS.cards.undo = DECKS.diagrams.undo = null;
   if (S.cq) { S.cq = ""; $("#csearch").value = ""; }
   renderAll();
 }
@@ -988,6 +991,7 @@ document.addEventListener("keydown", ev => {
   const free = !tg.closest("main button, main input, main summary, main a");
   const n = "1234".includes(ev.key) && ev.key.length === 1 ? +ev.key - 1 : -1;
   if (S.view === "notes" && worldOf() === "board" && TEUStocks.key(ev)) return;
+  if (S.view === "rwe") { TEUStocks.rweKey(ev, free); return; }
   const D = DECKS[S.view];
   if (D && (ev.key === "u" || ev.key === "U") && D.undo) { deckUndo(S.view); return; }
   if (D && !D.cur && ev.key === "Enter" && free && $("[data-redrill]")) { ev.preventDefault(); $("[data-redrill]").click(); return; }

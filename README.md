@@ -7,7 +7,8 @@ Use it online at **https://alanferious.github.io/teu/**, or download this folder
 - **Course notes**: all 31 subtopics in Units 1–4, with 336 definitions, 76 diagrams with drawing steps, formulas, memory aids, evaluation points and exam traps. HL-only content is marked.
   Modes: Notes (with search), Flashcards, Diagram drill and Term quiz.
 - **Unit 3 stocks**: Unit 3 looks like a stocks app. Each subtopic is a stock (MEAS, ADAS, OBJ, INEQ, MONP, FISC, SUPP) and so is the Unit 3 index (TEU3). Each one has a chart, stats, its terms, diagrams, formulas and "top stories" (key ideas, exam traps, evaluation points). Every term's price is how well you recall it. It lists at 10.00 the first time you grade it, rises each time you recall it, and drifts down once it is overdue.
-  - **The game**: in Flashcards, call each Unit 3 card before you flip it: *Buy* if you know it, *Sell* if you're not sure. Your call stays hidden until you've graded, so grade against the wording, not your guess. You get a trade confirmation after every grade (<kbd>U</kbd> undoes it) and a "Closing bell" summary at the end of a session, with the terms you missed ready to drill again. The TEU3 page shows your exam target (70.00 by Paper 2), overdue terms that are falling, today's top gainers, your trading-day run, how well calibrated your calls are, and 11 records to earn.
+  - **The game**: in Flashcards, call each Unit 3 card before you flip it: *Buy* if you know it, *Sell* if you're not sure. Your call stays hidden until you've graded, so grade against the wording, not your guess. You get a trade confirmation after every grade (<kbd>U</kbd> undoes it) and a "Closing bell" summary at the end of a session, with the terms you missed ready to drill again. The TEU3 page shows your exam target (70.00 by Paper 2), overdue terms that are falling, today's top gainers, your trading-day run, how well calibrated your calls are, and 12 records to earn.
+  - **Unit 3 examples (RWE3)**: 26 real-world examples for macro, about four per subtopic, from Ireland's leprechaun GDP to Turkey's 50% interest rate and India's phone-making subsidies. None are US-centred. They use the same memory card as the Unit 4 bank: a story, three numbers, what to use it for, and one "but". Each example is a stock too: it lists at 10.00 and rises as you recall it. The **Examples** tab (shown in Unit 3) has three drills: Recall (graded, with Buy/Sell calls), Numbers and Pick the example. Every subtopic page lists its own examples, plus ones from other subtopics that also fit.
 - **Evidence bank**: 42 real-world examples for Unit 4, rated on relevance, evaluation, data and recency. Each one is boiled down to a story, three key numbers and one "but".
   Modes: Library (the bay plan), Drill, Number recall, Pick the example, and Write & check (an offline checker for Paper 1 (b)-style paragraphs).
 
@@ -19,7 +20,7 @@ Progress is saved in your browser (localStorage). To move it to another computer
 
 ## Notes
 
-The course notes follow the IB Economics guide (first assessment 2022), but they are not official IB material. Check them against your class notes. Facts in the evidence bank were checked against the linked sources as of 26 October 2026. The ratings are our own, not examiner scores. Not affiliated with the International Baccalaureate.
+The course notes follow the IB Economics guide (first assessment 2022), but they are not official IB material. Check them against your class notes. Facts in the evidence bank were checked against the linked sources as of 26 October 2026, and the Unit 3 examples as of 28 October 2026. The ratings are our own, not examiner scores. Not affiliated with the International Baccalaureate.
 
 ## Credits
 

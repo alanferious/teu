@@ -41,6 +41,7 @@
         <button class="mode" role="tab" id="tab-cards" data-view="cards">Flashcards<small id="cardsBadge"></small></button>
         <button class="mode" role="tab" id="tab-diagrams" data-view="diagrams">Diagram drill<small id="diagBadge"></small></button>
         <button class="mode" role="tab" id="tab-quiz" data-view="quiz">Term quiz</button>
+        <button class="mode" role="tab" id="tab-rwe" data-view="rwe" hidden>Examples<small id="rweBadge"></small></button>
         <button class="mode" role="tab" id="tab-library" data-view="library">Library</button>
         <button class="mode" role="tab" id="tab-drill" data-view="drill">Drill<small id="dueBadge"></small></button>
         <button class="mode" role="tab" id="tab-numbers" data-view="numbers">Number recall</button>
@@ -80,6 +81,11 @@
       <section class="view" id="view-quiz" hidden>
         <div class="view-head"><h1>Term quiz</h1><p class="sub">Read the definition and pick the term it defines. Wrong options come from the same unit, so you have to tell close terms apart.</p></div>
         <div id="quiz"></div>
+      </section>
+
+      <section class="view" id="view-rwe" hidden>
+        <div class="view-head"><h1>Examples</h1><p class="sub">The best real-world examples for Unit 3, each one a stock you trade by recalling it. Recall is graded and moves prices; Numbers and Pick the example are practice.</p></div>
+        <div id="rwe"></div>
       </section>
 
       <section class="view" id="view-library" hidden>
@@ -167,7 +173,7 @@
           <div class="toolbar"><button class="btn" id="pasteProgress">Add to my progress</button><span class="note" id="progressNote" role="status"></span></div>
         </div>
       </details>
-      <p>Course notes follow the IB Economics guide (first assessment 2022) but are not official IB material, and TEU is not affiliated with the International Baccalaureate. Facts in the evidence bank were checked against the linked sources as of <span class="num">26 October 2026</span>; policies change, so check the newest figures before an exam. Fonts: Barlow Semi Condensed and Saira Stencil One (SIL Open Font License).</p>
+      <p>Course notes follow the IB Economics guide (first assessment 2022) but are not official IB material, and TEU is not affiliated with the International Baccalaureate. Facts in the evidence bank were checked against the linked sources as of <span class="num">26 October 2026</span>, and the Unit 3 examples as of <span class="num">28 October 2026</span>; policies change, so check the newest figures before an exam. Fonts: Barlow Semi Condensed and Saira Stencil One (SIL Open Font License).</p>
     </div>
   </footer>
 
@@ -175,6 +181,7 @@
 
   <script src="data/examples.js"></script>
   <script src="data/course.js"></script>
+  <script src="data/macro.js"></script>
   <script src="ship.js"></script>
   <script src="stocks.js"></script>
   <script src="app.js"></script>

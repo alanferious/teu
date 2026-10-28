@@ -19,6 +19,7 @@ body[data-world="board"] :focus-visible { outline-color: var(--sx-blue); border-
 body[data-world="board"] ::selection { background: var(--sx-fill); color: #fff; }
 body[data-world="board"] .skip { background: var(--sx-fill); color: #fff; }
 body[data-world="board"] .mark { font-family: var(--f-code); }
+body[data-world="board"] .top-stats { display: none; }
 body[data-world="board"] .btn { border-radius: 10px; border-width: 1px; border-color: var(--rule-2); background: var(--panel); }
 body[data-world="board"] .btn.primary { background: var(--sx-fill); border-color: var(--sx-fill); color: #fff; border-radius: 999px; }
 @media (hover: hover) and (pointer: fine) {
@@ -276,6 +277,35 @@ body[data-world="board"] .sx-calls .buy { background: var(--sx-pill-up); } body[
 .sx-missed b { margin-right: 8px; }
 .sx-close .sx-actrow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .sx-close .sx-link { margin-left: 0; font-size: 15px; }
+
+/* Real-world examples: holdings that open into a memory card, and the drill's mode switch */
+.sx-sub { display: flex; gap: 10px; align-items: baseline; font-size: 15px; margin: 18px 0 2px; padding: 0 8px; }
+.sx-sub span { color: var(--ink-2); font-size: 13px; font-weight: 600; }
+.sx-exbody { padding: 6px 8px 18px; border-bottom: 1px solid var(--rule); }
+.sx-ex.lit { animation: sxFlash 1.4s var(--ease-out); }
+.sx-mem { max-width: 900px; }
+.sx-hook { font-size: 16px; color: #E5E5EA; max-width: 72ch; margin-top: 4px; }
+body[data-world="board"] .story { font-size: 17px; margin-top: 12px; }
+body[data-world="board"] .story .arr { color: var(--sx-blue); }
+body[data-world="board"] .nums { border-top: 1px solid var(--rule); margin-top: 14px; }
+body[data-world="board"] .nums b { font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+body[data-world="board"] .but h3 { color: var(--sx-down); letter-spacing: .02em; text-transform: none; font-size: 14px; }
+.sx-use { margin-top: 12px; font-size: 15px; color: var(--ink-2); }
+.sx-use b { color: #fff; font-weight: 600; margin-right: 6px; }
+.sx-score { margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+.sx-score b { color: #fff; }
+body[data-world="board"] .cols h4 { letter-spacing: .02em; text-transform: none; font-size: 14px; color: #fff; }
+body[data-world="board"] .tag { border-radius: 6px; border-color: var(--rule-2); }
+body[data-world="board"] .sources a { color: var(--sx-blue); }
+body[data-world="board"] .num-hl { background: var(--panel-3); border-radius: 4px; padding: 0 4px; }
+body[data-world="board"] .cloze input { border-radius: 8px 8px 0 0; border-bottom-color: var(--sx-blue); }
+body[data-world="board"] .opt { border-radius: 12px; border-color: var(--rule-2); }
+body[data-world="board"] .opt.right { border-color: var(--sx-up); } body[data-world="board"] .opt.wrong { border-color: var(--sx-down); }
+.sx-seg { display: inline-flex; background: var(--panel); border-radius: 9px; padding: 2px; margin-bottom: 16px; }
+.sx-seg button { background: none; border: 0; border-radius: 7px; padding: 6px 14px; font: 600 14px var(--f-sys); color: var(--ink-2); transition: background-color .15s ease, color .15s ease; }
+.sx-seg button[aria-selected="true"] { background: var(--panel-3); color: #fff; }
+@media (hover: hover) and (pointer: fine) { .sx-seg button[aria-selected="false"]:hover { color: #fff; } }
+#view-rwe .flash { max-width: 900px; }
 
 /* Record toasts: a notification banner, top right */
 .sx-toasts { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); right: 16px; z-index: 60; display: grid; gap: 8px; width: min(340px, calc(100vw - 32px)); pointer-events: none; }
