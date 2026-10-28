@@ -1,18 +1,19 @@
 # TEU: IB Economics HL revision
 
-TEU (twenty-foot equivalent unit) is a revision app for IB Economics HL. The Unit 4 examples are stacked as shipping containers on a bay plan, and Unit 3 trades on an exchange board.
+TEU (twenty-foot equivalent unit) is a revision app for IB Economics HL. The Unit 4 examples are stacked as shipping containers on a bay plan, and Unit 3 is a stock market app.
 
 Use it online at **https://alanferious.github.io/teu/**, or download this folder and open `index.html` in Chrome, Edge or Firefox. Nothing to set up. Online, it keeps working without a connection after your first visit.
 
 - **Course notes**: all 31 subtopics in Units 1–4, with 336 definitions, 76 diagrams with drawing steps, formulas, memory aids, evaluation points and exam traps. HL-only content is marked.
   Modes: Notes (with search), Flashcards, Diagram drill and Term quiz.
-- **Unit 3 board**: every macro term has a ticker symbol and a "price", which is how well you recall it. A term lists at 10.00 the first time you grade it, rises as you recall it, and drifts down once it is overdue.
+- **Unit 3 stocks**: Unit 3 looks like a stocks app. Each subtopic is a stock (GDP, ADAS, OBJ, INEQ, MPOL, FISC, SSP) and so is the Unit 3 index (TEU3). Each one has a chart, stats, its terms, diagrams, formulas and "top stories" (key ideas, exam traps, evaluation points). Every term's price is how well you recall it. It lists at 10.00 the first time you grade it, rises each time you recall it, and drifts down once it is overdue.
+  - **The game**: in Flashcards, call each Unit 3 card before you flip it: *Buy* if you know it, *Sell* if you're not sure. You get a trade confirmation after every grade and a "Market closed" summary at the end of a session. The TEU3 page tracks your trading-day run, your call record, an exam target (70.00 by Paper 2), today's movers, overdue terms that are falling, and 11 records to earn.
 - **Evidence bank**: 42 real-world examples for Unit 4, rated on relevance, evaluation, data and recency. Each one is boiled down to a story, three key numbers and one "but".
   Modes: Library (the bay plan), Drill, Number recall, Pick the example, and Write & check (an offline checker for Paper 1 (b)-style paragraphs).
 
 In the Library the examples are containers on a ship at the quay. Click one and the crane lifts it out for you. A weathered container is an example you haven't drilled yet. A freshly painted one is one you're learning, and a sealed one is mastered. A yellow corner means it is due for review.
 
-Keys: <kbd>Space</kbd> flips a card, <kbd>1</kbd>–<kbd>4</kbd> grade it or pick an answer, and <kbd>Enter</kbd> moves on.
+Keys: <kbd>Space</kbd> flips a card, <kbd>1</kbd>–<kbd>4</kbd> grade it or pick an answer, and <kbd>Enter</kbd> moves on. On Unit 3 cards, <kbd>B</kbd> and <kbd>S</kbd> buy or sell before flipping. In Unit 3 notes, <kbd>↑</kbd> <kbd>↓</kbd> move through the stocks, <kbd>1</kbd>–<kbd>5</kbd> change the chart range, <kbd>D</kbd> drills and <kbd>/</kbd> searches.
 
 Progress is saved in your browser (localStorage). To move it to another computer, open **Your progress** at the bottom of the page and use **Copy progress**, then **Add to my progress** on the other one.
 
@@ -22,4 +23,4 @@ The course notes follow the IB Economics guide (first assessment 2022), but they
 
 ## Credits
 
-Built with Claude. Fonts: Barlow Semi Condensed, Saira Stencil One and DotGothic16 (SIL Open Font License, see `fonts/`).
+Built with Claude. Fonts: Barlow Semi Condensed and Saira Stencil One (SIL Open Font License, see `fonts/`). Unit 3 uses your system font.

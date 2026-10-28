@@ -1,5 +1,5 @@
 /* TEU. The shell is a container port: ink header, galvanised ground, container paints for tiers.
-   Unit 4 and the evidence bank stack examples on a bay plan; Unit 3 trades on an exchange board. */
+   Unit 4 and the evidence bank stack examples on a bay plan; Unit 3 is a stocks app (stocks.css). */
 
 @font-face { font-family: "Barlow SC"; src: url(fonts/BarlowSemiCondensed-400.woff2) format("woff2"); font-weight: 400; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Barlow SC"; src: url(fonts/BarlowSemiCondensed-400i.woff2) format("woff2"); font-weight: 400; font-style: italic; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2212; }
@@ -10,7 +10,6 @@
 @font-face { font-family: "Barlow SC"; src: url(fonts/BarlowSemiCondensed-600-ext.woff2) format("woff2"); font-weight: 600; font-display: swap; unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+20A0-20AB, U+20AD-20C4, U+2113; }
 @font-face { font-family: "Barlow SC"; src: url(fonts/BarlowSemiCondensed-700-ext.woff2) format("woff2"); font-weight: 700; font-display: swap; unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+20A0-20AB, U+20AD-20C4, U+2113; }
 @font-face { font-family: "Saira Stencil"; src: url(fonts/SairaStencilOne-400.woff2) format("woff2"); font-display: swap; }
-@font-face { font-family: "DotGothic16"; src: url(fonts/DotGothic16-400.woff2) format("woff2"); font-display: swap; }
 
 /* ---------- Tokens ---------- */
 :root {
@@ -37,7 +36,7 @@
   --u1: #6F695F; --u2: #3F6B47; --u3: #1C2126; --u4: #A9442E;
   --f-body: "Barlow SC", "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
   --f-code: "Saira Stencil", "Barlow SC", sans-serif;
-  --f-board: "DotGothic16", "Barlow SC", monospace;
+  --f-board: "Barlow SC", "Barlow Semi Condensed", system-ui, sans-serif;
   --ease-out: cubic-bezier(.23, 1, .32, 1);
   color-scheme: light;
 }
@@ -52,16 +51,8 @@
     color-scheme: dark;
   }
 }
-/* Unit 3: the exchange board. Always a lit board on black, whatever the system theme. */
-body[data-world="board"] {
-  --ground: #0E100F; --panel: #161918; --ink: #ECE6D6; --ink-2: #A29F94; --rule: #2C302E; --rule-2: #ECE6D6;
-  --amber: #FFB547; --up: #5DBF7C; --down: #EC6F62;
-  --ochre: #FFB547; --ochre-ink: #FFB547;
-  --cobalt: #79A6DA; --moss: #5DBF7C; --rust: #EC6F62; --stone: #A29F94;
-  --good: #5DBF7C; --bad: #EC6F62; --good-soft: #17301F; --bad-soft: #3A1C18; --hl: #4A3A12;
-  --bar: #000; --bar-ink: #ECE6D6;
-  color-scheme: dark;
-}
+/* Unit 3: the stock exchange. Always dark, whatever the system theme. Its look lives in stocks.css. */
+body[data-world="board"] { color-scheme: dark; }
 
 /* ---------- Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -120,7 +111,6 @@ body[data-sec="bank"] .view-head .sub { margin-top: 0; flex: 1 1 40ch; max-width
 .progress-line .opts { display: flex; gap: 18px; flex-wrap: wrap; }
 .progress-line label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 input[type=checkbox] { accent-color: var(--ink); width: 16px; height: 16px; }
-body[data-world="board"] input[type=checkbox] { accent-color: var(--amber); }
 
 /* ---------- Controls ---------- */
 .field { background: var(--panel); border: 1px solid var(--rule); border-radius: 0; padding: 9px 12px; min-height: 42px; font-size: 16px; }
@@ -376,10 +366,8 @@ mark { background: var(--hl); color: inherit; }
 .dg .t-bad { stroke: var(--bad); } .dg .lbl.t-bad, .dg .note-t.t-bad, .dg .area.t-bad { fill: var(--bad); }
 .dg .t-m { stroke: var(--ink-2); } .dg .lbl.t-m, .dg .note-t.t-m, .dg .area.t-m { fill: var(--ink-2); }
 .dg .lbl, .dg .note-t { stroke: var(--panel); }
-body[data-world="board"] .dg .t-a { stroke: var(--amber); }
-body[data-world="board"] .dg .lbl.t-a, body[data-world="board"] .dg .note-t.t-a, body[data-world="board"] .dg .area.t-a { fill: var(--amber); }
 
-/* ---------- Unit 3: exchange board ---------- */
+/* ---------- Unit 3: ticker tape and change colours ---------- */
 .ticker { background: #000; color: var(--ink); border-bottom: 1px solid #2C302E; overflow: hidden; font-family: var(--f-board); font-size: 15px; height: 34px; display: flex; align-items: center; position: relative; }
 .ticker .tape { display: flex; gap: 0; white-space: nowrap; animation: tape var(--tape-s, 120s) linear infinite; will-change: transform; }
 .ticker:hover .tape, .ticker:focus-within .tape { animation-play-state: paused; }
@@ -391,34 +379,6 @@ body[data-world="board"] .dg .lbl.t-a, body[data-world="board"] .dg .note-t.t-a,
 .chg { display: inline-flex; align-items: center; gap: 3px; }
 .chg svg { width: 9px; height: 9px; fill: currentColor; }
 .up { color: var(--up); } .dn { color: var(--down); } .flat, .ipo { color: var(--ink-2); }
-.board-head { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: baseline; padding: 12px 0 14px; border-bottom: 1px solid var(--rule); margin-bottom: 6px; }
-.board-head .ix { font-family: var(--f-board); font-size: 34px; color: var(--amber); line-height: 1; }
-.board-head .lbl { font-size: 13px; color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
-.board-head .chg { font-family: var(--f-board); font-size: 17px; }
-.board-head .note { margin-left: auto; }
-.listing { width: 100%; border-collapse: collapse; }
-.listing th { text-align: left; font-size: 12.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; padding: 8px 12px 6px 0; border-bottom: 1px solid var(--rule-2); }
-.listing td { padding: 11px 12px 11px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
-.listing .tk { font-family: var(--f-board); color: var(--amber); font-size: 16px; white-space: nowrap; }
-.listing .term { font-weight: 700; font-size: 16.5px; }
-.listing .d { margin-top: 3px; max-width: 70ch; color: var(--ink); opacity: .88; }
-.listing .px { font-family: var(--f-board); font-size: 17px; text-align: right; white-space: nowrap; color: var(--amber); }
-.listing .px.ipo { color: var(--ink-2); font-size: 14px; }
-.listing .cg { font-family: var(--f-board); font-size: 14px; text-align: right; white-space: nowrap; }
-.listing .sp { width: 92px; }
-.spark { width: 88px; height: 26px; display: block; }
-.spark path { fill: none; stroke-width: 1.5; stroke: currentColor; }
-.flip { display: inline-block; animation: flip .42s var(--ease-out); transform-origin: 50% 60%; }
-@keyframes flip { 0% { transform: rotateX(-90deg); opacity: .2; } 60% { transform: rotateX(12deg); opacity: 1; } 100% { transform: none; } }
-.quote { display: flex; gap: 22px; align-items: baseline; flex-wrap: wrap; font-family: var(--f-board); }
-.quote .tk { font-size: 30px; color: var(--amber); }
-.quote .px { font-size: 26px; color: var(--amber); }
-.quote .chg { font-size: 17px; }
-.quote .ipo { font-size: 15px; }
-body[data-world="board"] .btn.primary { background: var(--amber); color: #0E100F; border-color: var(--amber); }
-body[data-world="board"] .mode small, body[data-world="board"] .unit-btn .tab { color: #0E100F; }
-body[data-world="board"] .unit-blk[data-u="3"] .unit-btn .tab { background: var(--amber); }
-body[data-world="board"] .chip[aria-pressed="true"] { background: var(--amber); color: #0E100F; }
 
 /* ---------- Write & check ---------- */
 .write { display: grid; gap: 14px; max-width: 900px; }

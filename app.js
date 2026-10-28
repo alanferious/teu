@@ -188,17 +188,24 @@ const CBY = Object.fromEntries([...CDEFS, ...CDIAG].map(x => [x.id, x]));
 const S = { view: "notes", sec: "course", topic: "all", ctopic: "all", tier: "all", q: "", cq: "", sort: "score", sel: null, ...pickUI(lsGet(UI_KEY, {})) };
 function pickUI(u) { const o = {}; if (u.ctopic && (u.ctopic === "all" || CT[u.ctopic] || /^u[1-4]$/.test(u.ctopic))) o.ctopic = u.ctopic; if (u.topic && (u.topic === "all" || TOPIC[u.topic])) o.topic = u.topic; if (u.sel && BY_ID[u.sel]) o.sel = u.sel; return o; }
 const saveUI = () => lsSet(UI_KEY, { ctopic: S.ctopic, topic: S.topic, sel: S.sel });
-let P = { cards: {}, numbers: { right: 0, total: 0 }, match: { right: 0, total: 0 }, quiz: { right: 0, total: 0 }, writes: [], updated: 0 };
+let P = { cards: {}, numbers: { right: 0, total: 0 }, match: { right: 0, total: 0 }, quiz: { right: 0, total: 0 }, writes: [], rec: {}, updated: 0 };
 
 function mergeProgress(a, b) {
   const out = { cards: { ...a.cards }, numbers: a.numbers, match: a.match, quiz: a.quiz || { right: 0, total: 0 }, writes: [...(a.writes || [])], updated: Math.max(a.updated || 0, b.updated || 0) };
-  for (const [id, c] of Object.entries(b.cards || {})) if (!out.cards[id] || (c.t || 0) > (out.cards[id].t || 0)) out.cards[id] = c;
+  for (const [id, c] of Object.entries(b.cards || {})) {
+    const o = out.cards[id], win = !o || (c.t || 0) > (o.t || 0) ? c : o;
+    out.cards[id] = o && (o.ev || c.ev) ? { ...win, ev: mergeEv(o.ev, c.ev) } : win;
+  }
+  out.rec = { ...(a.rec || {}) };
+  for (const [k, t] of Object.entries(b.rec || {})) out.rec[k] = Math.min(out.rec[k] || t, t);
   if ((b.updated || 0) > (a.updated || 0)) { out.numbers = b.numbers || out.numbers; out.match = b.match || out.match; out.quiz = b.quiz || out.quiz; }
   const seen = new Set(out.writes.map(w => w.t + w.id));
   for (const w of b.writes || []) if (!seen.has(w.t + w.id)) out.writes.push(w);
   out.writes.sort((x, y) => x.t - y.t);
   return out;
 }
+// Dated grade events [time, box, due, grade 0-3, call -1/0/1], unioned so two computers keep both histories
+function mergeEv(x, y) { const m = new Map(); for (const e of [...(x || []), ...(y || [])]) m.set(e[0], e); return [...m.values()].sort((p, q) => p[0] - q[0]).slice(-40); }
 function persist() { P.updated = Date.now(); lsSet(LS_KEY, P); }
 
 // ---------- Spaced repetition ----------
@@ -212,16 +219,24 @@ const stateLabel = { new: "New", learning: "Learning", mastered: "Mastered" };
 // climbs with each correct recall towards 100, and drifts down once it is overdue.
 const IPO = 10;
 const basePrice = c => 12 + c.box * 17.6;
-function priceOf(id) {
-  const c = prog(id); if (!c) return null;
-  let p = basePrice(c);
-  if (c.due < now()) p *= Math.max(.6, 1 - (now() - c.due) / DAY * .05);
+const GCODE = { again: 0, hard: 1, good: 2, easy: 3 };
+// Progress saved before dated events existed has only the latest grade
+const evOf = id => { const c = prog(id); return !c ? [] : c.ev?.length ? c.ev : [[c.t || 0, c.box, c.due, 2, 0]]; };
+function priceAt(id, tt) {
+  let e = null;
+  for (const x of evOf(id)) { if (x[0] <= tt) e = x; else break; }
+  if (!e) return null;
+  let p = 12 + e[1] * 17.6;
+  if (e[2] < tt) p *= Math.max(.6, 1 - (tt - e[2]) / DAY * .05);
   return p;
 }
-const changeOf = id => { const c = prog(id); return c ? priceOf(id) - (c.pp ?? IPO) : null; };
+const priceOf = id => prog(id) ? priceAt(id, now()) ?? basePrice(prog(id)) : null;
+// Sector index: unlisted terms count at the listing price
+const indexAt = (defs, tt) => defs.length ? defs.reduce((a, d) => a + (priceAt(d.id, tt) ?? IPO), 0) / defs.length : IPO;
+const dayChg = id => { const p = priceOf(id); return p == null ? null : p - (priceAt(id, now() - DAY) ?? IPO); };
 
-let lastMoved = null, lastTrade = null;
-function grade(id, g) {
+let lastMoved = null;
+function grade(id, g, call = 0) {
   const before = prog(id) ? priceOf(id) : IPO, stBefore = stateOf(id);
   const c = { box: 0, reps: 0, lapses: 0, ...(prog(id) || {}) };
   if (g === "again") { c.box = 0; c.lapses++; }
@@ -232,11 +247,11 @@ function grade(id, g) {
   c.due = now() + INTERVALS[c.box] * (g === "hard" ? .6 : 1);
   c.t = now();
   c.pp = +before.toFixed(2);
-  c.h = [...(c.h || []), +basePrice(c).toFixed(2)].slice(-12);
+  c.ev = [...evOf(id), [c.t, c.box, c.due, GCODE[g], call]].slice(-40);
+  delete c.h;
   P.cards[id] = c;
   persist();
   if (stateOf(id) !== stBefore) lastMoved = id;
-  lastTrade = id;
 }
 function previewInterval(id, g) {
   const c = prog(id) || { box: 0 };
@@ -255,6 +270,7 @@ function applyWorld() {
   const w = worldOf();
   document.body.dataset.world = w;
   document.body.dataset.sec = S.sec;
+  document.body.dataset.view = S.view;
   document.querySelector('meta[name="theme-color"]').content = w === "board" ? "#000000" : getComputedStyle(document.documentElement).getPropertyValue("--bar").trim() || "#1C2126";
   renderTicker();
 }
@@ -267,14 +283,6 @@ function chgHTML(v, cls = "") {
   if (v == null) return `<span class="chg ipo ${cls}">IPO</span>`;
   if (Math.abs(v) < .005) return `<span class="chg flat ${cls}">0.00</span>`;
   return `<span class="chg ${v > 0 ? "up" : "dn"} ${cls}">${TRI(v > 0)}${v > 0 ? "+" : "−"}${fmt(Math.abs(v))}</span>`;
-}
-function spark(id) {
-  const h = prog(id)?.h || [];
-  if (h.length < 2) return "";
-  const pts = h.slice(-12), W = 88, H = 26;
-  const d = pts.map((v, i) => `${i ? "L" : "M"}${(i / (pts.length - 1) * (W - 2) + 1).toFixed(1)} ${(H - 2 - (v / 100) * (H - 4)).toFixed(1)}`).join(" ");
-  const up = pts[pts.length - 1] >= pts[pts.length - 2];
-  return `<svg class="spark ${up ? "up" : "dn"}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}"/></svg>`;
 }
 const hlMark = on => on ? `<span class="hl" title="Higher level only">HL</span>` : "";
 const tierBox = e => `<span class="tierbox tier-${e.tier}" title="Exam value ${e.score} out of 100">${e.tier}</span>`;
@@ -339,25 +347,18 @@ function renderTicker() {
   if (worldOf() !== "board") { el.hidden = true; tickerKey = ""; return; }
   el.hidden = false;
   const xs = CDEFS.filter(d => d.unit === "3");
-  const listed = xs.filter(d => prog(d.id)).sort((a, b) => Math.abs(changeOf(b.id)) - Math.abs(changeOf(a.id)));
+  const listed = xs.filter(d => prog(d.id)).sort((a, b) => Math.abs(dayChg(b.id)) - Math.abs(dayChg(a.id)));
   const rest = xs.filter(d => !prog(d.id));
   const items = [...listed, ...rest].slice(0, 60);
   const key = items.map(d => d.id + (prog(d.id)?.t || "")).join();
   if (key === tickerKey) return;
   tickerKey = key;
-  const q = d => { const p = priceOf(d.id), c = changeOf(d.id); return `<span class="q"><b>${esc(d.tk)}</b>${p == null ? `<span class="ipo">IPO</span>` : `<span class="p">${fmt(p)}</span><span class="${c > .004 ? "up" : c < -.004 ? "dn" : "ipo"}">${c > 0 ? "+" : c < 0 ? "−" : ""}${fmt(Math.abs(c))}</span>`}</span>`; };
+  const q = d => { const p = priceOf(d.id), c = dayChg(d.id); return `<span class="q"><b>${esc(d.tk)}</b>${p == null ? `<span class="ipo">IPO</span>` : `<span class="p">${fmt(p)}</span><span class="${c > .004 ? "up" : c < -.004 ? "dn" : "ipo"}">${c > 0 ? "+" : c < 0 ? "−" : ""}${fmt(Math.abs(c))}</span>`}</span>`; };
   const run = items.map(q).join("");
   el.style.setProperty("--tape-s", Math.max(40, items.length * 2.6) + "s");
   el.innerHTML = `<div class="tape" aria-hidden="true">${run}${run}</div><span class="sr-only">Unit 3 board: ${listed.length} of ${xs.length} terms listed.</span>`;
 }
 
-// Sector index for a set of terms: unlisted terms count at the listing price
-function indexOf(defs) {
-  if (!defs.length) return { ix: IPO, chg: 0 };
-  let ix = 0, chg = 0;
-  for (const d of defs) { const p = priceOf(d.id); ix += p ?? IPO; chg += changeOf(d.id) ?? 0; }
-  return { ix: ix / defs.length, chg: chg / defs.length };
-}
 
 // ---------- Rail (course) ----------
 const inScope = x => S.ctopic === "all" || (S.ctopic[0] === "u" ? x.unit === S.ctopic.slice(1) : x.n === S.ctopic);
@@ -377,7 +378,7 @@ function renderRail() {
       ts.map(t => {
         const ids = courseIds(x => x.n === t.n);
         let right = `<span class="ct">${ids.length}</span>`;
-        if (board && u.u === "3") { const { ix, chg } = indexOf(CDEFS.filter(d => d.n === t.n)); right = `<span class="idx${chg < -.004 ? " dn" : ""}">${fmt(ix)}</span>`; }
+        if (board && u.u === "3") { const xs = CDEFS.filter(d => d.n === t.n), ix = indexAt(xs, now()), chg = ix - indexAt(xs, now() - DAY); right = `<span class="idx${chg < -.004 ? " dn" : chg > .004 ? " up" : ""}">${fmt(ix)}</span>`; }
         return `<button class="topic" data-ctopic="${t.n}" aria-pressed="${S.ctopic === t.n}"><span class="n">${t.n}</span><span class="nm">${esc(t.short)}${hlMark(t.hl)}</span>${right}<span class="meter"><i style="--m:${masteryOf(ids)}"></i></span></button>`;
       }).join("") + `</div>`;
   }
@@ -711,18 +712,6 @@ function evidenceFor(t) {
   if (!xs.length) return "";
   return `<section class="evid note-sec"><h2>Evidence for ${t.n} in the bank</h2><div class="row">${xs.map(e => `<button class="box tier-${e.tier} mastered" data-goto="${esc(e.id)}" data-gototopic="${t.n}" title="${esc(e.code + " · " + e.title)}">${esc(e.mem.tag)}</button>`).join("")}</div></section>`;
 }
-function boardHead(defs, label) {
-  const { ix, chg } = indexOf(defs);
-  const listed = defs.filter(d => prog(d.id)).length;
-  return `<div class="board-head"><span class="lbl">${esc(label)}</span><span class="ix">${fmt(ix)}</span>${chgHTML(defs.length && listed ? chg : null)}<span class="note">${listed} of ${defs.length} terms listed. A term lists when you first grade it in Flashcards, and its price is how well you recall it.</span></div>`;
-}
-function listingHTML(defs) {
-  const trend = defs.some(d => (prog(d.id)?.h || []).length >= 2);
-  return `<table class="listing"><thead><tr><th>Symbol</th><th>Term and definition</th><th class="n" style="text-align:right">Price</th><th style="text-align:right">Change</th>${trend ? `<th class="sp">Trend</th>` : ""}</tr></thead><tbody>${defs.map(d => {
-    const p = priceOf(d.id);
-    return `<tr><td class="tk">${esc(d.tk)}</td><td><div class="term">${esc(d.t)}${hlMark(d.hl && !CT[d.n].hl)}</div><div class="d">${esc(d.d)}</div></td><td class="px${p == null ? " ipo" : ""}">${p == null ? "IPO" : fmt(p)}</td><td class="cg">${p == null ? "" : chgHTML(changeOf(d.id))}</td>${trend ? `<td class="sp">${spark(d.id)}</td>` : ""}</tr>`;
-  }).join("")}</tbody></table>`;
-}
 function diagramFig(g) {
   return `<figure class="dfig">${g.spec ? drawDiagram(g.spec) : ""}
     <figcaption><b>${esc(g.name)}${hlMark(g.hl)}</b><span>${esc(g.shows || "")}</span></figcaption>
@@ -733,9 +722,7 @@ function topicArticle(t) {
   const list = (xs, cls = "") => `<ul class="${cls}">${xs.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
   const sec = (title, body) => `<section class="note-sec"><h2>${title}</h2>${body}</section>`;
   const i = COURSE.indexOf(t), prev = COURSE[i - 1], next = COURSE[i + 1];
-  const defsHere = CDEFS.filter(d => d.n === t.n);
-  const defs = t.unit === "3" ? boardHead(defsHere, "Sector index " + t.n) + listingHTML(defsHere)
-    : `<dl class="defs">${t.defs.map(d => `<div><dt>${esc(d.t)}${hlMark(d.hl && !t.hl)}</dt><dd>${esc(d.d)}</dd></div>`).join("")}</dl>`;
+  const defs = `<dl class="defs">${t.defs.map(d => `<div><dt>${esc(d.t)}${hlMark(d.hl && !t.hl)}</dt><dd>${esc(d.d)}</dd></div>`).join("")}</dl>`;
   return `<article>
     <p class="big-idea">${esc(t.big)}</p>
     ${t.defs.length ? sec("Definitions to learn", defs) : ""}
@@ -754,13 +741,10 @@ function topicIndex() {
   for (const u of UNITS) {
     const ts = COURSE.filter(t => t.unit === u.u && inScope(t));
     if (!ts.length) continue;
-    const board = u.u === "3" && worldOf() === "board";
     html += `<h2 class="unit-h" style="--uc:var(--u${u.u})"><span class="tab">${u.u}</span>${esc(u.name)}</h2>`;
-    if (board) html += boardHead(CDEFS.filter(d => d.unit === "3"), "Unit 3 index");
-    html += `<table class="tbl tidx"><thead><tr><th>No.</th><th>Subtopic</th><th class="n">Terms</th><th class="n">Diagrams</th>${board ? `<th class="n">Index</th><th class="n">Change</th>` : `<th>Mastered</th>`}</tr></thead><tbody>` + ts.map(t => {
+    html += `<table class="tbl tidx"><thead><tr><th>No.</th><th>Subtopic</th><th class="n">Terms</th><th class="n">Diagrams</th><th>Mastered</th></tr></thead><tbody>` + ts.map(t => {
       const ids = courseIds(x => x.n === t.n);
-      let right = `<td style="--uc:var(--u${u.u})"><span class="mbar"><i style="--m:${masteryOf(ids)}"></i></span></td>`;
-      if (board) { const { ix, chg } = indexOf(CDEFS.filter(d => d.n === t.n)); right = `<td class="n"><span style="font-family:var(--f-board);color:var(--amber);font-size:16px">${fmt(ix)}</span></td><td class="n">${chgHTML(CDEFS.some(d => d.n === t.n && prog(d.id)) ? chg : null)}</td>`; }
+      const right = `<td style="--uc:var(--u${u.u})"><span class="mbar"><i style="--m:${masteryOf(ids)}"></i></span></td>`;
       return `<tr data-row="${t.n}"><td>${t.n}${hlMark(t.hl)}</td><td><button class="nm" data-ctopic="${t.n}" style="background:none;border:0;padding:0;text-align:left">${esc(t.name)}</button><div class="bi">${esc(t.big)}</div></td><td class="n">${t.defs.length}</td><td class="n">${t.diagrams.length}</td>${right}</tr>`;
     }).join("") + `</tbody></table>`;
   }
@@ -782,6 +766,7 @@ function searchHits(q) {
     `<div class="hit"><span class="where">${h.t.n} ${esc(h.t.name)} · ${h.kind}</span><div>${h.html}</div><button class="btn" data-ctopic="${h.t.n}">Open ${h.t.n}</button></div>`).join("");
 }
 function renderNotes() {
+  if (worldOf() === "board") { TEUStocks.render($("#notes")); return; }
   const t = CT[S.ctopic];
   const u = S.ctopic[0] === "u" ? UNITS.find(x => x.u === S.ctopic.slice(1)) : null;
   $("#notesTitle").innerHTML = t ? `${t.n} ${esc(t.name)}${hlMark(t.hl)}` : u ? `Unit ${u.u}: ${esc(u.name)}` : "Course notes";
@@ -803,33 +788,28 @@ function deckQueue(D) {
   const later = $(D.all).checked ? xs.filter(x => prog(x.id) && !isDue(x.id)).sort((a, b) => prog(a.id).due - prog(b.id).due) : [];
   return [...due, ...fresh, ...later];
 }
-function tradeLine() {
-  const d = lastTrade && CBY[lastTrade];
-  if (!d || d.unit !== "3" || !d.tk || worldOf() !== "board") return "";
-  const p = priceOf(d.id);
-  return `<div class="quote" aria-label="Last trade: ${esc(d.t)} now ${fmt(p)}"><span class="lbl note" style="font-family:var(--f-body)">Last trade</span><span class="tk">${esc(d.tk)}</span><span class="px ${calm() ? "" : "flip"}">${fmt(p)}</span>${chgHTML(changeOf(d.id), calm() ? "" : "flip")}</div>`;
-}
 function renderDeck(name) {
   const D = DECKS[name], q = deckQueue(D);
   const xs = D.items().filter(inScope);
   const n = xs.filter(x => isDue(x.id)).length;
   $(D.info).textContent = `${n} due or new in ${scopeName()}${n ? ", " + minutes(n, D.per) : ""}${D.done ? ` · ${D.done} reviewed this session` : ""}`;
-  if (!D.cur || !q.find(x => x.id === D.cur)) { D.cur = q[0]?.id || null; D.flipped = false; }
-  const trade = tradeLine();
+  if (!D.cur || !q.find(x => x.id === D.cur)) { D.cur = q[0]?.id || null; D.flipped = false; D.call = 0; }
+  const stx = worldOf() === "board" && name === "cards";
+  const trade = stx ? TEUStocks.tradeBar(D) : "";
   if (!D.cur) {
-    $(D.el).innerHTML = trade + (xs.length ? `<div class="empty">All caught up here. Tick “Include ${D.noun} that aren't due” to keep going, or pick another subtopic.</div>` : `<div class="empty">No ${D.noun} in this subtopic.</div>`);
+    $(D.el).innerHTML = (stx ? TEUStocks.recap(D) : trade) + (xs.length ? `<div class="empty">All caught up here. Tick “Include ${D.noun} that aren't due” to keep going, or pick another subtopic.</div>` : `<div class="empty">No ${D.noun} in this subtopic.</div>`);
     return;
   }
   const x = CBY[D.cur], t = CT[x.n];
   const board = worldOf() === "board" && name === "cards" && x.unit === "3";
-  const quote = board ? `<div class="quote"><span class="tk">${esc(x.tk)}</span>${priceOf(x.id) == null ? `<span class="ipo">Not listed yet</span>` : `<span class="px">${fmt(priceOf(x.id))}</span>${chgHTML(changeOf(x.id))}`}</div>` : "";
+  const quote = board ? TEUStocks.cardQuote(x) : "";
   const head = `<div class="head"><span>${x.n} ${esc(t.name)}</span>${hlMark(x.hl)}${stateTag(x.id)}</div>`;
   let body;
   if (name === "cards") {
     const rev = $("#cardsRev").checked;
     const front = rev ? `<p class="def">${esc(x.d)}</p>` : `<h2 class="title">${esc(x.t)}</h2>`;
-    body = front + (D.flipped ? (rev ? `<h2 class="title">${esc(x.t)}</h2>` : `<p class="def">${esc(x.d)}</p>`) + gradeRow("data-cgrade", x.id)
-      : `<p class="prompt">${rev ? "Name the term this defines." : "Say the definition out loud, as close to exam wording as you can."}</p>${flipButton('data-cflip="1"')}`);
+    body = front + (D.flipped ? (rev ? `<h2 class="title">${esc(x.t)}</h2>` : `<p class="def">${esc(x.d)}</p>`) + (board ? TEUStocks.callTag(D.call) : "") + gradeRow("data-cgrade", x.id)
+      : `<p class="prompt">${rev ? "Name the term this defines." : "Say the definition out loud, as close to exam wording as you can."}</p>${board ? TEUStocks.callRow() : flipButton('data-cflip="1"')}`);
   } else {
     body = `<h2 class="title">${esc(x.name)}</h2>${x.shows ? `<p class="note">${esc(x.shows)}</p>` : ""}` + (D.flipped
       ? `${x.spec ? drawDiagram(x.spec) : ""}${x.steps?.length ? `<ol style="margin:0;padding-left:20px;display:grid;gap:3px;max-width:70ch">${x.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}${gradeRow("data-cgrade", x.id)}`
@@ -838,10 +818,12 @@ function renderDeck(name) {
   $(D.el).innerHTML = `${trade}<div class="flash">${head}${quote}${body}</div>`;
 }
 function deckGrade(name, g) {
-  const D = DECKS[name];
-  grade(D.cur, g); D.done++;
+  const D = DECKS[name], id = D.cur, stx = worldOf() === "board" && name === "cards" && CBY[id].unit === "3";
+  if (stx && !D.sess) D.sess = TEUStocks.session();
+  grade(id, g, stx ? D.call || 0 : 0); D.done++; D.call = 0;
+  if (stx) TEUStocks.afterGrade(D, id);
   say(`Graded ${g}.`);
-  D.cur = deckQueue(D).filter(x => x.id !== D.cur)[0]?.id || null; D.flipped = false;
+  D.cur = deckQueue(D).filter(x => x.id !== id)[0]?.id || null; D.flipped = false;
   renderRail(); renderStats(); renderTicker(); renderDeck(name);
 }
 
@@ -903,7 +885,7 @@ function renderView() {
 function ensureSel() { if (!S.sel || !BY_ID[S.sel] || !inTopic(BY_ID[S.sel])) S.sel = pool().sort((a, b) => b.score - a.score)[0]?.id || null; }
 function renderAll() { ensureSel(); applyWorld(); renderRail(); renderBay(); renderStats(); renderView(); saveUI(); }
 function setScope(key) {
-  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; lastTrade = null;
+  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; DECKS.cards.sess = null;
   if (S.cq) { S.cq = ""; $("#csearch").value = ""; }
   renderAll();
 }
@@ -938,6 +920,7 @@ document.addEventListener("click", ev => {
     if (S.view === "notes" && !t.closest("#rail")) window.scrollTo({ top: 0 });
   }
   else if (d.cflip) { DECKS[S.view].flipped = true; renderDeck(S.view); }
+  else if (d.call) { const D = DECKS.cards; D.call = +d.call; D.flipped = true; renderDeck("cards"); }
   else if (d.cgrade) deckGrade(S.view, d.cgrade);
   else if (d.qopt) pickQuiz(d.qopt);
   else if (t.id === "quizNext") { newQuizQ(); renderQuiz(); }
@@ -978,9 +961,12 @@ document.addEventListener("keydown", ev => {
   // Space and Enter flip the card unless a control inside the work area has focus
   const free = !tg.closest("main button, main input, main summary, main a");
   const n = "1234".includes(ev.key) && ev.key.length === 1 ? +ev.key - 1 : -1;
+  if (S.view === "notes" && worldOf() === "board" && TEUStocks.key(ev)) return;
   const D = DECKS[S.view];
   if (D && D.cur) {
-    if (!D.flipped && (ev.key === " " || ev.key === "Enter") && free) { ev.preventDefault(); D.flipped = true; renderDeck(S.view); }
+    const calls = S.view === "cards" && worldOf() === "board" && CBY[D.cur].unit === "3";
+    if (!D.flipped && calls && (ev.key === "b" || ev.key === "s")) { D.call = ev.key === "b" ? 1 : -1; D.flipped = true; renderDeck("cards"); }
+    else if (!D.flipped && (ev.key === " " || ev.key === "Enter") && free) { ev.preventDefault(); D.flipped = true; renderDeck(S.view); }
     else if (D.flipped && n >= 0) deckGrade(S.view, ["again", "hard", "good", "easy"][n]);
     return;
   }
@@ -1021,6 +1007,8 @@ window.addEventListener("storage", ev => { if (ev.key === LS_KEY) { const v = ls
 // ---------- Boot ----------
 { const local = lsGet(LS_KEY, null); if (local && local.cards) P = mergeProgress(P, local); }
 P.writes = P.writes || [];
+P.rec = P.rec || {};
+TEUStocks.check(true);
 renderTierChips();
 show((location.hash || "").replace(/^#\/?/, "") || "notes");
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
