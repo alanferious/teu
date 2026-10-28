@@ -73,11 +73,12 @@ body[data-world="board"][data-view="notes"] #view-notes > .toolbar { display: no
 .sx-icon svg { width: 20px; height: 20px; }
 @media (hover: hover) and (pointer: fine) { .sx-icon:hover { background: var(--panel); } }
 .sx-sortw, .sx-infow { position: relative; }
-.sx-menu, .sx-pop { position: absolute; right: 0; top: 40px; background: var(--panel-2); border-radius: 12px; z-index: 6; box-shadow: 0 10px 30px rgba(0,0,0,.55); transform-origin: top right; transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out); }
+.sx-menu, .sx-pop { position: absolute; right: 0; top: 40px; background: var(--panel-2); border-radius: 12px; z-index: 6; border: 1px solid var(--rule-2); transform-origin: top right; transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out); }
 .sx-menu[hidden], .sx-pop[hidden] { display: block !important; opacity: 0; transform: scale(.96); pointer-events: none; visibility: hidden; transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out), visibility 0s 150ms; }
 .sx-menu { width: 200px; padding: 5px; }
 .sx-menu p { margin: 4px 10px 6px; font-size: 12px; color: var(--ink-2); font-weight: 600; }
 .sx-menu button { display: flex; justify-content: space-between; width: 100%; text-align: left; background: none; border: 0; padding: 6px 10px; border-radius: 7px; font-size: 14.5px; }
+.sx-menu button svg { width: 14px; height: 14px; }
 .sx-menu button:hover, .sx-menu button:focus-visible { background: var(--sx-blue); outline: none; }
 .sx-pop { width: 320px; padding: 14px 16px; font-size: 14px; line-height: 1.45; color: #E5E5EA; }
 .sx-pop b { color: #fff; }
@@ -258,7 +259,7 @@ body[data-world="board"] .sx-calls .buy { background: var(--sx-pill-up); } body[
 
 /* Record toasts: a notification banner, top right */
 .sx-toasts { position: fixed; top: calc(72px + env(safe-area-inset-top)); right: 16px; z-index: 60; display: grid; gap: 8px; width: min(340px, calc(100vw - 32px)); pointer-events: none; }
-.sx-toast { background: rgba(44,44,46,.97); color: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); display: grid; gap: 1px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; opacity: 0; transform: translateY(-8px); transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
+.sx-toast { background: rgba(44,44,46,.97); color: #fff; border-radius: 14px; padding: 12px 14px; border: 1px solid #48484A; display: grid; gap: 1px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; opacity: 0; transform: translateY(-8px); transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
 .sx-toast.in { opacity: 1; transform: none; }
 .sx-toast .k { font-size: 12px; font-weight: 600; color: var(--sx-gold, #FFD60A); }
 .sx-toast b { font-size: 15px; }

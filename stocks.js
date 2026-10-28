@@ -136,6 +136,7 @@ window.TEUStocks = (() => {
   const ICON = {
     sort: `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M6 10h8M8 14h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
     find: `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    check: `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     info: `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
   };
 
@@ -155,7 +156,7 @@ window.TEUStocks = (() => {
     }
     return rowHTML("u3") + sectors().sort(SORTS[ui.sort][1]).map(rowHTML).join("");
   }
-  const sortMenu = () => `<p>Sort subtopics by</p>` + Object.entries(SORTS).map(([k, [lbl]]) => `<button role="menuitemradio" aria-checked="${k === ui.sort}" data-sx="sort" data-v="${k}">${lbl}<span aria-hidden="true">${k === ui.sort ? "✓" : ""}</span></button>`).join("");
+  const sortMenu = () => `<p>Sort subtopics by</p>` + Object.entries(SORTS).map(([k, [lbl]]) => `<button role="menuitemradio" aria-checked="${k === ui.sort}" data-sx="sort" data-v="${k}">${lbl}${k === ui.sort ? ICON.check : ""}</button>`).join("");
 
   // ---------- Detail ----------
   const curN = () => S.ctopic === "u3" ? "u3" : CT[S.ctopic]?.unit === "3" ? S.ctopic : "u3";
