@@ -945,8 +945,8 @@ document.addEventListener("click", ev => {
     setScope(d.ctopic);
     if (S.view === "notes" && !t.closest("#rail")) window.scrollTo({ top: 0 });
   }
-  else if (d.cflip) { DECKS[S.view].flipped = true; renderDeck(S.view); }
-  else if (d.call) { const D = DECKS.cards; D.call = +d.call; D.flipped = true; renderDeck("cards"); }
+  else if (d.cflip) { DECKS[S.view].flipped = true; renderDeck(S.view); say("Answer shown."); }
+  else if (d.call) { const D = DECKS.cards; D.call = +d.call; D.flipped = true; renderDeck("cards"); say("Answer shown."); }
   else if (d.undo) deckUndo(S.view);
   else if (d.redrill) { const D = DECKS.cards; D.redo = D.sess.missed.slice(); D.sess.missed = []; D.cur = null; renderDeck("cards"); }
   else if (t.id === "tickerPause") toggleTape();
@@ -997,8 +997,8 @@ document.addEventListener("keydown", ev => {
   if (D && !D.cur && ev.key === "Enter" && free && $("[data-redrill]")) { ev.preventDefault(); $("[data-redrill]").click(); return; }
   if (D && D.cur) {
     const calls = S.view === "cards" && worldOf() === "board" && CBY[D.cur].unit === "3";
-    if (!D.flipped && calls && (ev.key === "b" || ev.key === "s" || ev.key === "B" || ev.key === "S")) { D.call = ev.key.toLowerCase() === "b" ? 1 : -1; D.flipped = true; renderDeck("cards"); }
-    else if (!D.flipped && (ev.key === " " || ev.key === "Enter") && free) { ev.preventDefault(); D.flipped = true; renderDeck(S.view); }
+    if (!D.flipped && calls && (ev.key === "b" || ev.key === "s" || ev.key === "B" || ev.key === "S")) { D.call = ev.key.toLowerCase() === "b" ? 1 : -1; D.flipped = true; renderDeck("cards"); say("Answer shown."); }
+    else if (!D.flipped && (ev.key === " " || ev.key === "Enter") && free) { ev.preventDefault(); D.flipped = true; renderDeck(S.view); say("Answer shown."); }
     else if (D.flipped && n >= 0) deckGrade(S.view, ["again", "hard", "good", "easy"][n]);
     return;
   }

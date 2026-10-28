@@ -6,7 +6,7 @@ window.TEUStocks = (() => {
   const MS_DAY = 864e5, HOUR = 36e5, TARGET = 70;
   const EXAM = new Date(2026, 10, 10).getTime();            // Paper 2, 10 November 2026
   const TICK = { "3.1": "MEAS", "3.2": "ADAS", "3.3": "OBJ", "3.4": "INEQ", "3.5": "MONP", "3.6": "FISC", "3.7": "SUPP" };
-  const SHORT = { "3.1": "Economic activity", "3.2": "AD and AS", "3.3": "Macro objectives", "3.4": "Inequality", "3.5": "Monetary policy", "3.6": "Fiscal policy", "3.7": "Supply-side" };
+  const SHORT = { "3.1": "Activity", "3.2": "AD and AS", "3.3": "Objectives", "3.4": "Inequality", "3.5": "Monetary", "3.6": "Fiscal", "3.7": "Supply side" };
   const RANGES = [["1D", MS_DAY], ["1W", 7 * MS_DAY], ["2W", 14 * MS_DAY], ["1M", 30 * MS_DAY], ["ALL", Infinity]];
   const RANGE_LBL = { "1D": "Today", "1W": "Past week", "2W": "Past 2 weeks", "1M": "Past month", ALL: "Since you started" };
   const PILLS = ["% change", "points", "due", "listed"];
@@ -37,6 +37,8 @@ window.TEUStocks = (() => {
       used.add(tk);
       return { ...e, key: e.id, id: "x:" + e.id, tk, topics, n: topics[0], score: sc, tier: tierOf(sc) };
     }).sort((a, b) => a.n.localeCompare(b.n, undefined, { numeric: true }) || b.score - a.score);
+    // Rank within its own subtopic: more useful for choosing what to learn first than a raw score near 100
+    for (const n of new Set(rweList.map(e => e.n))) rweList.filter(e => e.n === n).forEach((e, i, xs) => { e.rank = i + 1; e.of = xs.length; });
     return rweList;
   }
   const RBY = id => rwe().find(e => e.id === id);
@@ -52,6 +54,10 @@ window.TEUStocks = (() => {
   const sgn = v => v > .004 ? "+" : v < -.004 ? "−" : "";
   const cls = v => v > .004 ? "up" : v < -.004 ? "down" : "flat";
   const signed = v => sgn(v) + fmt(Math.abs(v));
+  // A forgotten item still rises from 10.00 to 12.00 when it lists; never colour that like a win
+  const moveCls = (id, c) => c > .004 && evOf(id).at(-1)?.[3] === 0 ? "flat" : cls(c);
+  const ord = i => i + ({ 1: "st", 2: "nd", 3: "rd" }[i] || "th");
+  const capFirst = x => x.charAt(0).toUpperCase() + x.slice(1);
   const dayChange = n => { const a = ixAt(n, now()), b = ixAt(n, now() - MS_DAY); return [a - b, pct(a, b)]; };
   const termDay = id => { const p = priceOf(id); return p == null ? null : p - (priceAt(id, now() - MS_DAY) ?? IPO); };
   const daysToExam = () => Math.max(0, Math.round((EXAM - new Date().setHours(0, 0, 0, 0)) / MS_DAY));
@@ -118,7 +124,7 @@ window.TEUStocks = (() => {
       txt: g => g.calls.total ? `${Math.round(g.calls.right / g.calls.total * 100)}% of ${g.calls.total} call${g.calls.total === 1 ? "" : "s"}` : "No calls yet" },
     { id: "comeback", name: "Comeback", how: "Bring a term you forgot back above 60.00.", p: g => [g.comeback, 1] },
     { id: "run7", name: "Week-long run", how: "Grade Unit 3 cards seven days in a row.", p: g => [g.run.best, 7] },
-    { id: "stocked", name: "Fully stocked", how: "Get an example to 64.80 in every Unit 3 subtopic.", p: g => [g.stocked, 7] },
+    { id: "stocked", name: "Fully stocked", how: "Get an example to 64.80 (about three good recalls in a row) in every Unit 3 subtopic.", p: g => [g.stocked, 7] },
     { id: "target", name: "On target", how: "Lift the Unit 3 index to 70.00.", p: g => [g.ix, TARGET], price: true },
     { id: "blue10", name: "Ten blue chips", how: "Hold 10 terms at 100.00 at the same time.", p: g => [g.blue, 10] },
     { id: "full", name: "Full exchange", how: "List all 82 Unit 3 terms.", p: g => [g.listed, g.total] },
@@ -135,7 +141,7 @@ window.TEUStocks = (() => {
   }
 
   // ---------- Small pieces ----------
-  const pill = (v, c, label, attrs = "") => `<span class="sx-pill ${c}" ${attrs}${label ? ` aria-label="${esc(label)}"` : ""}>${v}</span>`;
+  const pill = (v, c, label, attrs = "") => `<span class="sx-pill ${c}" ${attrs}${label ? ` aria-label="${esc(label)}"` : ""}${v === "IPO" ? ` title="Not graded yet. It lists at 10.00 the first time you grade it."` : ""}>${v}</span>`;
   function rowPill(n) {
     if (!listedN(n)) return pill("IPO", "ipo", "", 'data-sx="pill" aria-hidden="true"');
     const [d, p] = dayChange(n), m = PILLS[ui.pill];
@@ -167,7 +173,7 @@ window.TEUStocks = (() => {
   function rowHTML(n) {
     const cur = curN() === n, [d, p] = dayChange(n);
     const said = listedN(n) ? `today ${sgn(d) === "−" ? "down" : sgn(d) ? "up" : "flat"} ${Math.abs(p).toFixed(2)}%, ${dueN(n)} due` : "not listed yet";
-    const lbl = n === "u3" ? "Unit 3 index" : n === "rwe" ? `${rwe().length} real-world examples` : n + " · " + SHORT[n];
+    const lbl = n === "u3" ? "Unit 3 index" : n === "rwe" ? `${rwe().length} examples` : n + " · " + SHORT[n];
     return `<button class="sx-row${n === "u3" || n === "rwe" ? " ix" : ""}" data-ctopic="${n === "rwe" ? "u3" : n}" data-n="${n}" data-sx="row" aria-current="${cur}" aria-label="${tkOf(n)}, ${esc(n === "u3" || n === "rwe" ? nameOf(n) : n + " " + CT[n].name)}, ${fmt(ixAt(n, now()))}, ${said}">
       <div><div class="tk">${tkOf(n)}</div><div class="nm">${lbl}</div></div>${sparkline(n)}
       <div class="rt"><div class="px">${fmt(ixAt(n, now()))}</div>${rowPill(n)}</div></button>`;
@@ -204,7 +210,7 @@ window.TEUStocks = (() => {
       const nm = P.rwe?.num || { right: 0, total: 0 }, pk = P.rwe?.pick || { right: 0, total: 0 };
       const thin = sectors().filter(k => !rweIn(k).some(e => (priceOf(e.id) || 0) >= 64.79));
       return base.concat([cell("Numbers right", nm.total ? `${nm.right} of ${nm.total}` : "–"), cell("Picks right", pk.total ? `${pk.right} of ${pk.total}` : "–"),
-        cell("Subtopics stocked", `${7 - thin.length} of 7`), cell("Thinnest", thin[0] ? tkOf(thin[0]) : "none")]).join("");
+        cell("Subtopics stocked", `${7 - thin.length} of 7`), cell("Thinnest", thin.length === 7 ? "–" : thin[0] ? tkOf(thin[0]) : "none")]).join("");
     }
     if (n === "u3") {
       const r = runs(), c = calls(), ix = ixAt("u3", now());
@@ -220,7 +226,7 @@ window.TEUStocks = (() => {
     const p = priceOf(d.id), c = termDay(d.id), open = openTerm === d.id, due = p != null && isDue(d.id);
     return `<button class="sx-term${open ? " lit" : ""}" data-sx="term" data-id="${esc(d.id)}" aria-expanded="${open}">
       <div><span class="sym">${esc(d.tk)}</span><span class="tn">${esc(d.t)}</span>${HLtag(d.hl && !CT[d.n].hl)}${due ? `<span class="sx-due">overdue</span>` : ""}<div class="def">${esc(d.d)}</div></div>
-      <div class="px">${p == null ? "–" : fmt(p)}</div><div class="rt">${p == null ? pill("IPO", "ipo", "Not listed yet") : pill(signed(c), cls(c), "Today " + signed(c))}</div></button>`;
+      <div class="px">${p == null ? "–" : fmt(p)}</div><div class="rt">${p == null ? pill("IPO", "ipo", "Not listed yet") : pill(signed(c), moveCls(d.id, c), "Today " + signed(c))}</div></button>`;
   }
   // Printed in full: traps and evaluation are reading content, not teasers
   function newsHTML(n, kind, raw) {
@@ -245,8 +251,8 @@ window.TEUStocks = (() => {
         : `To get there by ${new Date(EXAM).toLocaleDateString([], { day: "numeric", month: "long" })}, the index needs about +${fmt(perDay)} a day: roughly ${recalls} good recall${recalls === 1 ? "" : "s"} a day, plus whatever falls due.`}</p></section>`;
     const r = g.run;
     const runNote = r.cur >= 2 && !r.today ? `<p class="sx-runnote">Your run is at ${r.cur} days. One Unit 3 card today keeps it going.</p>` : "";
-    const gain = defs.filter(d => prog(d.id)).map(d => [d, termDay(d.id)]).filter(x => x[1] > .004).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const movers = `<h2>Top gainers <small>today</small></h2>${gain.length ? gain.map(x => moverRow(...x)).join("") : `<p class="sx-none">Nothing up in the last 24 hours. Every term you recall shows up here.</p>`}`;
+    const gain = defs.filter(d => prog(d.id) && evOf(d.id).at(-1)[3] !== 0).map(d => [d, termDay(d.id)]).filter(x => x[1] > .004).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const movers = gain.length ? `<h2>Top gainers <small>today</small></h2>${gain.map(x => moverRow(...x)).join("")}` : "";
     const falling = defs.filter(d => prog(d.id) && prog(d.id).due < now() - HOUR).sort((a, b) => prog(a.id).due - prog(b.id).due);
     const fall = falling.length ? `<h2>Falling <small>${falling.length} overdue</small></h2><p class="sx-lede">An overdue term loses 5% a day until it's down to 60% of its price. Recall it to stop the slide.</p>
       ${falling.slice(0, 6).map(d => termRow(d)).join("")}${falling.length > 6 ? `<p class="sx-none">and ${falling.length - 6} more</p>` : ""}<div class="sx-actrow"><button class="sx-drill" data-view="cards">Drill what's due <kbd>D</kbd></button></div>` : "";
@@ -264,11 +270,12 @@ window.TEUStocks = (() => {
     const p = priceOf(e.id), c = termDay(e.id), due = p != null && isDue(e.id);
     return `<div class="sx-exw"><button class="sx-term sx-ex" data-sx="ex" data-id="${esc(e.id)}" aria-expanded="false" aria-controls="ex-${esc(e.key)}">
       <div><span class="sym">${esc(e.tk)}</span><span class="tn">${esc(e.mem.tag)}</span>${due ? `<span class="sx-due">overdue</span>` : ""}<div class="def one">${esc(e.title)} · ${esc(e.region)} · ${esc(e.years)}</div></div>
-      <div class="px">${p == null ? "–" : fmt(p)}</div><div class="rt">${p == null ? pill("IPO", "ipo", "Not listed yet") : pill(signed(c), cls(c), "Today " + signed(c))}</div></button>
+      <div class="px">${p == null ? "–" : fmt(p)}</div><div class="rt">${p == null ? pill("IPO", "ipo", "Not listed yet") : pill(signed(c), moveCls(e.id, c), "Today " + signed(c))}</div></button>
       <div class="sx-exbody" id="ex-${esc(e.key)}" hidden>${memCard(e)}</div></div>`;
   }
-  const memCard = e => `<div class="sx-mem"><p class="sx-hook">${esc(e.hook)}</p>${storyHTML(e.mem)}${numsHTML(e.mem)}<p class="sx-use"><b>Use it for</b> ${esc(e.mem.use)}</p>${butHTML(e.mem)}
-    <p class="sx-score">Exam value <b>${e.score}</b> of 100 · our rating, not an examiner's</p>
+  const rankLine = e => `<p class="sx-score">Ranked <b>${ord(e.rank)} of ${e.of}</b> for ${tkOf(e.n)} on exam value (${e.score} of 100 for relevance, evaluation, data and recency: our rating, not an examiner's)</p>`;
+  const memCard = e => `<div class="sx-mem">${storyHTML(e.mem)}${numsHTML(e.mem)}<p class="sx-use"><b>Use it for</b> ${esc(e.mem.use)}</p>${butHTML(e.mem)}
+    ${rankLine(e)}
     <details class="sx-more"><summary>Facts, diagram, evaluation and sources</summary>${factSheet(e)}</details></div>`;
   function toggleEx(b, open) {
     const body = document.getElementById(b.getAttribute("aria-controls")); if (!body) return;
@@ -281,7 +288,7 @@ window.TEUStocks = (() => {
       <div class="sx-headrow"><div class="sx-head"><span class="tk">RWE3</span><span class="nm">Unit 3 examples · ${xs.length} real-world cases</span></div>
       <div class="sx-actions"><button class="sx-drill" data-view="rwe">Drill${due ? ` · ${due} due` : ""} <kbd>D</kbd></button>
       <div class="sx-infow"><button class="sx-icon" data-sx="info" aria-expanded="false" aria-controls="sxInfo" aria-label="What the price means">${ICON.info}</button>
-      <div class="sx-pop" id="sxInfo" hidden><b>The price is how ready your examples are.</b> Each example lists at 10.00 the first time you drill it and climbs as you recall its story, its three numbers and its "but". It drifts down while it's overdue. Numbers and Pick the example are practice: they don't move prices.<br><br>Examples are rated on relevance, evaluation, data and recency (30/30/25/15). The ratings are ours, not examiner scores.</div></div></div></div>
+      <div class="sx-pop" id="sxInfo" hidden><b>The price is how ready your examples are.</b> Each example lists at 10.00 the first time you drill it and climbs as you recall its story, its three numbers and its "but". It drifts down while it's overdue. Numbers and Pick the example are practice: they don't move prices. An example counts as stocked at 64.80, which takes about three good recalls in a row.<br><br>Examples are rated on relevance, evaluation, data and recency (30/30/25/15). The ratings are ours, not examiner scores.</div></div></div></div>
       <div class="sx-quote" id="sxQuote" aria-live="polite"></div>${statusLine(n)}`;
     const chart = L ? `<div class="sx-ranges" role="group" aria-label="Chart range">${RANGES.map(([r], i) => `<button data-sx="range" data-v="${r}" aria-pressed="${r === ui.range}" title="Key ${i + 1}">${r}</button>`).join("")}</div>
       <div class="sx-chart" id="sxChart" tabindex="0" role="img" aria-label=""></div>
@@ -289,9 +296,9 @@ window.TEUStocks = (() => {
       : `<div class="sx-emptychart"><div><b>RWE3 isn't listed yet</b>Drill any Unit 3 example to list it at 10.00.<br>Say the story, the three numbers and the "but", then grade yourself.</div><button class="sx-drill" data-view="rwe">Start drilling <kbd>D</kbd></button></div>`;
     const groups = sectors().map(k => [k, rweIn(k).filter(e => e.n === k)]).filter(([, ys]) => ys.length);
     const body = `<div class="sx-stats">${stats(n)}</div>
-      <h2>Holdings <small>by subtopic, strongest first</small></h2>
+      <h2>Holdings <small>by subtopic, ranked by exam value</small></h2>
       ${groups.map(([k, ys]) => `<h3 class="sx-sub">${k} ${SHORT[k]} <span>${tkOf(k)}</span></h3>${ys.map(exRow).join("")}`).join("")}
-      <p class="sx-keys"><kbd>J</kbd> <kbd>K</kbd> (or <kbd>↑</kbd> <kbd>↓</kbd> in the list) move through the watchlist · <kbd>1</kbd>–<kbd>5</kbd> chart range · <kbd>D</kbd> drill · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</p>`;
+      <p class="sx-keys"><kbd>J</kbd> <kbd>K</kbd> (or <kbd>↑</kbd> <kbd>↓</kbd> in the list) move through the watchlist · <kbd>1</kbd>–<kbd>5</kbd> chart range · <kbd>D</kbd> drill · <kbd>E</kbd> examples · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</p>`;
     return head + chart + body;
   }
   function detailHTML(n) {
@@ -313,7 +320,7 @@ window.TEUStocks = (() => {
       const terms = defs.slice().sort((a, b) => (priceOf(a.id) ?? -1) - (priceOf(b.id) ?? -1));
       body += `<h2>Terms <small>weakest first</small></h2><div>${terms.map(termRow).join("")}</div>`;
       const home = rweIn(n).filter(e => e.n === n), also = rweIn(n).filter(e => e.n !== n);
-      if (home.length || also.length) body += `<h2>Real-world examples <small>${home.length} for ${tkOf(n)}</small><button class="sx-link" data-view="rwe">Drill these</button></h2><div>${home.map(exRow).join("")}</div>
+      if (home.length || also.length) body += `<h2>Real-world examples <small>${home.length} for ${tkOf(n)}${also.length ? ` · ${also.length} more that fit` : ""}</small><button class="sx-link" data-view="rwe">Drill all ${home.length + also.length} <kbd>E</kbd></button></h2><div>${home.map(exRow).join("")}</div>
         ${also.length ? `<h3 class="sx-sub">Also useful here <span>${also.length} from other subtopics</span></h3><div>${also.map(exRow).join("")}</div>` : ""}`;
       if (t.big || t.mnemonics.length) body += `<h2>About ${tkOf(n)}</h2><p class="sx-about">${esc(t.big)}</p>${t.mnemonics.length ? `<div class="sx-fx">${t.mnemonics.map(([a, b]) => `<div><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join("")}</div>` : ""}`;
       if (t.diagrams.length) body += `<h2>Charts <small>${t.diagrams.length} to draw from memory</small><button class="sx-link" data-view="diagrams">Diagram drill</button></h2><div class="sx-dgrid">${t.diagrams.map(g => `<div class="sx-dcard"><b>${esc(g.name.replace(/^HL:\s*/, ""))}</b>${HLtag((g.hl || /^HL:/.test(g.name)) && !t.hl)}<p>${esc(g.shows || "")}</p>${g.spec ? drawDiagram(g.spec) : ""}</div>`).join("")}</div>`;
@@ -321,7 +328,7 @@ window.TEUStocks = (() => {
       const stories = [...t.points.map(p => ["idea", p]), ...t.traps.map(p => ["trap", p]), ...t.eval.map(p => ["eval", p])];
       body += `<h2>Top Stories</h2><div class="sx-news">${stories.map(([k, x]) => newsHTML(n, k, x)).join("")}</div>`;
     }
-    body += `<p class="sx-keys"><kbd>J</kbd> <kbd>K</kbd> (or <kbd>↑</kbd> <kbd>↓</kbd> in the list) move through the watchlist · <kbd>1</kbd>–<kbd>5</kbd> chart range · <kbd>D</kbd> drill · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</p>`;
+    body += `<p class="sx-keys"><kbd>J</kbd> <kbd>K</kbd> (or <kbd>↑</kbd> <kbd>↓</kbd> in the list) move through the watchlist · <kbd>1</kbd>–<kbd>5</kbd> chart range · <kbd>D</kbd> drill · <kbd>E</kbd> examples · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</p>`;
     return head + chart + body;
   }
 
@@ -369,7 +376,7 @@ window.TEUStocks = (() => {
     const vs = s.map(p => p[1]);
     el.setAttribute("aria-label", `${tkOf(n)} ${ui.range}: from ${fmt(open)} to ${fmt(last)}, low ${fmt(Math.min(...vs))}, high ${fmt(Math.max(...vs))}`);
     el.innerHTML = `<svg aria-hidden="true"><defs><linearGradient id="sxFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
-      ${xt.map(tt => `<line class="vgrid" x1="${X(tt)}" x2="${X(tt)}" y1="6" y2="${H - BOT}"/><text class="axis" x="${X(tt)}" y="${H - 6}" text-anchor="${tt === t0 ? "start" : tt === t1 ? "end" : "middle"}">${new Date(tt).toLocaleString([], d1 ? { hour: "numeric" } : { day: "numeric", month: "short" })}</text>`).join("")}
+      ${xt.map(tt => `<line class="vgrid" x1="${X(tt)}" x2="${X(tt)}" y1="6" y2="${H - BOT}"/><text class="axis" x="${X(tt)}" y="${H - 6}" text-anchor="${tt === t0 ? "start" : tt === t1 ? "end" : "middle"}">${new Date(tt).toLocaleString([], d1 ? { hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" })}</text>`).join("")}
       ${ticks.map(v => `<line class="grid" x1="0" x2="${W - PAD}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axis" x="${W - PAD + 8}" y="${Y(v) + 4}">${v}</text>`).join("")}
       ${d1 ? `<line class="prev" x1="0" x2="${W - PAD}" y1="${Y(open)}" y2="${Y(open)}"/><text class="prevlbl" x="${W - PAD + 8}" y="${Y(open) - 6}">Prev close</text>` : ""}
       ${tgt ? `<line class="tgt" x1="0" x2="${W - PAD}" y1="${Y(TARGET)}" y2="${Y(TARGET)}"/><text class="tgtlbl" x="6" y="${Y(TARGET) - 6}">Exam target ${fmt(TARGET)}</text>` : ""}
@@ -502,6 +509,7 @@ window.TEUStocks = (() => {
     }
     if ("12345".includes(k) && k.length === 1) { const r = RANGES[+k - 1][0]; if (host.querySelector('[data-sx="range"]')) setRange(r); return true; }
     if (k === "d" || k === "D") { show(curN() === "rwe" ? "rwe" : "cards"); return true; }
+    if (k === "e" || k === "E") { show("rwe"); return true; }
     return false;
   }
   let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (host?.querySelector(".stx")) chart(curN(), false); }, 120); });
@@ -511,10 +519,10 @@ window.TEUStocks = (() => {
   // The symbol is hidden while you're naming the term from its definition: it would give the answer away
   function cardQuote(x, hideSymbol) {
     const p = priceOf(x.id), c = termDay(x.id);
-    return `<div class="sx-cq"><span class="tk">${hideSymbol ? `<span class="sx-hidden" aria-label="Symbol hidden until you flip">· · ·</span>` : esc(x.tk)}</span>${p == null ? `<span class="ipo">Not listed yet · lists at 10.00</span>` : `<span class="px">${fmt(p)}</span>${pill(signed(c), cls(c), "Today " + signed(c))}`}</div>`;
+    return `<div class="sx-cq"><span class="tk">${hideSymbol ? `<span class="sx-hidden" aria-label="Symbol hidden until you flip">· · ·</span>` : esc(x.tk)}</span>${p == null ? `<span class="ipo">Not listed yet · lists at 10.00</span>` : `<span class="px">${fmt(p)}</span>${pill(signed(c), moveCls(x.id, c), "Today " + signed(c))}`}</div>`;
   }
-  const callRow = () => `<div class="sx-calls"><button class="btn call buy" data-call="1">Buy · I know it <kbd>B</kbd></button><button class="btn call sell" data-call="-1">Sell · Not sure <kbd>S</kbd></button><button class="btn" data-cflip="1">Just flip <kbd>Space</kbd></button></div>
-    <p class="note">Make a call before you look. It stays hidden until you've graded, so grade against the wording, not your guess.</p>`;
+  const callRow = (note = "grade against the wording, not your guess") => `<div class="sx-calls"><button class="btn call buy" data-call="1">Buy · I know it <kbd>B</kbd></button><button class="btn call sell" data-call="-1">Sell · Not sure <kbd>S</kbd></button><button class="btn" data-cflip="1">Just flip <kbd>Space</kbd></button></div>
+    <p class="note">Make a call before you look. It stays hidden until you've graded, so ${note}.</p>`;
   // After the flip the call is not repeated: seeing "you said you know it" next to the grade buttons tilts the grade
   const callTag = call => call ? `<p class="sx-yourcall">Call made. You'll see it after you grade.</p>` : "";
   const session = () => ({ t0: now() - 1, n: 0, right: 0, calls: 0, first: {}, missed: [], recs: [], last: null });
@@ -549,11 +557,13 @@ window.TEUStocks = (() => {
   function recap(D, ctx = cardsCtx()) {
     const s = D.sess; if (!s || !s.n) return "";
     const a = indexAt(ctx.defs, s.t0), b = indexAt(ctx.defs, now()), mv = b - a;
-    const best = Object.entries(s.first).filter(([id]) => !s.missed.includes(id)).map(([id, p0]) => [ctx.look(id), priceOf(id) - p0]).sort((x, y) => y[1] - x[1])[0], r = runs();
+    const gains = Object.entries(s.first).filter(([id]) => !s.missed.includes(id)).map(([id, p0]) => [ctx.look(id), priceOf(id) - p0]).sort((x, y) => y[1] - x[1]), r = runs();
+    const best = gains[0] && gains[0][1] > .004 && !(gains[1] && gains[0][1] - gains[1][1] < .005) ? gains[0] : null;
+    const warm = ctx.defs.some(d => priceAt(d.id, s.t0) != null);
     const missed = s.missed.map(ctx.look).filter(Boolean);
     return `<section class="sx-close" aria-label="Session summary"><p class="lbl">Closing bell</p>
-      <div class="big"><span class="tk">${ctx.tk}</span><span class="px">${fmt(b)}</span><span class="ch ${cls(mv)}">${signed(mv)} (${sgn(mv)}${Math.abs(pct(b, a)).toFixed(2)}%)</span></div>
-      <p>You traded ${s.n} ${ctx.noun}${s.n === 1 ? "" : "s"} this session${s.calls ? ` and called ${s.right} of ${s.calls} right` : ""}.${r.cur ? ` Trading run: ${r.cur} day${r.cur === 1 ? "" : "s"}.` : ""}${best && best[1] > .004 ? ` Top gainer: ${esc(best[0].tk)} ${signed(best[1])}.` : ""}${s.recs.length ? ` New record${s.recs.length === 1 ? "" : "s"}: ${s.recs.map(esc).join(", ")}.` : ""}</p>
+      <div class="big"><span class="tk">${ctx.tk}</span><span class="px">${fmt(b)}</span><span class="ch ${cls(mv)}">${signed(mv)}${warm ? ` (${sgn(mv)}${Math.abs(pct(b, a)).toFixed(2)}%)` : ""}</span></div>
+      <p>You traded ${s.n} ${ctx.noun}${s.n === 1 ? "" : "s"} this session${s.calls ? ` and called ${s.right} of ${s.calls} right` : ""}.${r.cur ? ` Trading run: ${r.cur} day${r.cur === 1 ? "" : "s"}.` : ""}${best ? ` Top gainer: ${esc(best[0].tk)} ${signed(best[1])}.` : ""}${s.recs.length ? ` New record${s.recs.length === 1 ? "" : "s"}: ${s.recs.map(esc).join(", ")}.` : ""}</p>
       ${missed.length ? `<h3>To drill again</h3><ul class="sx-missed">${missed.map(d => `<li><b>${esc(d.tk)}</b> ${esc(ctx.label(d))}</li>`).join("")}</ul>
         <div class="sx-actrow"><button class="sx-drill" ${ctx.redo}="1">Drill these ${missed.length} again <kbd>Enter</kbd></button><button class="sx-link" data-view="notes">Open the ${ctx.tk} chart</button></div>`
       : `<p class="sx-none">${ctx.done}</p><div class="sx-actrow"><button class="sx-drill" data-view="notes">Open the ${ctx.tk} chart</button></div>`}</section>`;
@@ -562,92 +572,132 @@ window.TEUStocks = (() => {
 
   // ---------- Examples drill: Recall (graded, with calls), Numbers and Pick the example (practice) ----------
   const RM = { recall: "Recall", numbers: "Numbers", pick: "Pick the example" };
-  const R = { mode: RM[ui.rmode] ? ui.rmode : "recall", cur: null, flipped: false, call: 0, sess: null, undo: null, redo: null, num: null, pick: null };
+  const R = { mode: RM[ui.rmode] ? ui.rmode : "recall", cur: null, flipped: false, call: 0, sess: null, undo: null, redo: null, num: null, pick: null, batch: 6, newDone: 0, ticks: new Set(), touched: false, focusCard: false };
   let rhost = null;
+  const BATCH = 6;                                    // new examples per batch, so a cold start isn't 26 at once
   const rScope = () => { const n = curN(); return n === "u3" || n === "rwe" ? "u3" : n; };
   const rPool = () => rweIn(rScope());
   const rCtx = () => { const n = rScope(); return { look: RBY, label: e => e.mem.tag, tk: n === "u3" ? "RWE3" : tkOf(n) + " examples", defs: rPool(), noun: "example", undo: "data-rundo", redo: "data-rredo", done: "Nothing missed. Every example here is up to date." }; };
   function rQueue() {
     const xs = rPool();
     if (R.redo?.length) return R.redo.map(RBY).filter(e => e && xs.includes(e));
-    return [...xs.filter(e => prog(e.id) && isDue(e.id)).sort((a, b) => prog(a.id).due - prog(b.id).due), ...xs.filter(e => !prog(e.id))];
+    const fresh = xs.filter(e => !prog(e.id)).slice(0, Math.max(0, R.batch - R.newDone));
+    return [...xs.filter(e => prog(e.id) && isDue(e.id)).sort((a, b) => prog(a.id).due - prog(b.id).due), ...fresh];
   }
+  const unlisted = () => rPool().filter(e => !prog(e.id)).length;
   function rNewNum() {
     const xs = rPool(); if (!xs.length) return R.num = null;
     const e = xs.slice().sort((a, b) => (priceOf(a.id) ?? 0) - (priceOf(b.id) ?? 0))[rand(Math.min(6, xs.length))], [num, w] = e.mem.numbers[rand(e.mem.numbers.length)];
     R.num = { id: e.id, n: num, w, answered: false };
   }
+  // Wrong options come from other subtopics where possible, and never share the concept being asked about
   function rNewPick() {
     const xs = rPool().filter(e => e.concepts.length); R.pick = null;
-    for (let i = 0; i < 40 && xs.length; i++) {
+    const clash = (e, nc) => e.concepts.some(k => { const nk = norm(k); return nk.includes(nc) || nc.includes(nk); });
+    for (let i = 0; i < 80 && xs.length; i++) {
       const t = xs[rand(xs.length)], c = t.concepts[rand(t.concepts.length)], nc = norm(c);
-      const dis = shuffle(rwe().filter(e => e !== t && !e.concepts.some(k => { const nk = norm(k); return nk.includes(nc) || nc.includes(nk); })));
-      if (dis.length >= 3) { R.pick = { id: t.id, concept: c, opts: shuffle([t, ...dis.slice(0, 3)]).map(e => e.id), choice: null }; return; }
+      const ok = rwe().filter(e => e !== t && !clash(e, nc)), far = ok.filter(e => !e.topics.some(x => t.topics.includes(x)));
+      const dis = i < 60 ? far : ok;
+      if (dis.length >= 3) { R.pick = { id: t.id, concept: capFirst(c), opts: shuffle([t, ...shuffle(dis).slice(0, 3)]).map(e => e.id), choice: null }; return; }
     }
   }
   const scoreLine = k => { const x = P.rwe?.[k] || { right: 0, total: 0 }; return `<p class="score-line">${x.right} of ${x.total} right overall · practice only, prices don't move</p>`; };
+  const GR = ["again", "hard", "good", "easy"], GL = { again: "Forgot", hard: "Shaky", good: "Got it", easy: "Easy" };
+  const suggested = () => { const c = R.ticks.size; return c === 5 ? "easy" : c >= 3 ? "good" : c >= 1 ? "hard" : "again"; };
+  const suggestHTML = () => R.touched
+    ? `Suggested: <b>${GL[suggested()]}</b> (${R.ticks.size} of 5). <kbd>Enter</kbd> to accept, or <kbd>1</kbd>–<kbd>4</kbd> to choose.`
+    : `Tick what you got right (<kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>T</kbd>), then <kbd>Enter</kbd>. Or grade straight away with <kbd>1</kbd>–<kbd>4</kbd>.`;
+  function tickList(e) {
+    const rows = [["The story", storyHTML(e.mem)], ...e.mem.numbers.map(([v, w]) => [v, `<span class="w">${esc(w)}</span>`]), ["The but", `<p>${esc(e.mem.but)}</p>`]];
+    return `<div class="sx-checks" role="group" aria-label="Tick what you got right">${rows.map(([h, body], i) => {
+      const on = R.ticks.has(i), what = i === 0 ? "the story" : i === 4 ? "the but" : "the number " + h;
+      return `<div class="sx-tickrow${on ? " on" : ""}"><button class="sx-tick" data-tick="${i}" aria-pressed="${on}" aria-label="Got ${esc(what)}"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><kbd aria-hidden="true">${"QWERT"[i]}</kbd><div class="body"><b class="${i > 0 && i < 4 ? "fig" : ""}">${esc(h)}</b>${body}</div></div>`;
+    }).join("")}</div><p class="sx-use"><b>Use it for</b> ${esc(e.mem.use)}</p>`;
+  }
+  function updateSuggest() {
+    rhost.querySelectorAll(".sx-tick").forEach(b => { const on = R.ticks.has(+b.dataset.tick); b.setAttribute("aria-pressed", on); b.parentElement.classList.toggle("on", on); });
+    const sg = rhost.querySelector("#rSuggest"); if (sg) sg.innerHTML = suggestHTML();
+    rhost.querySelectorAll("[data-rgrade]").forEach(b => b.toggleAttribute("data-hint", R.touched && b.dataset.rgrade === suggested()));
+  }
+  function toggleTick(i) { if (R.ticks.has(i)) R.ticks.delete(i); else R.ticks.add(i); R.touched = true; updateSuggest(); }
+  function rFlip(call) {
+    if (call) R.call = call;
+    R.flipped = true; R.ticks = new Set(); R.touched = false;
+    renderRwe(rhost); say("Answer shown. Tick what you got right, then grade.");
+    rhost.querySelector(".flash")?.focus({ preventScroll: true });
+  }
   function renderRwe(el) {
     if (rhost !== el) { rhost = el; wireRwe(el); }
-    if (worldOf() !== "board") { el.innerHTML = `<div class="empty">Real-world examples are drilled with Unit 3 for now. <button class="btn" data-ctopic="u3">Open Unit 3</button></div>`; return; }
+    if (worldOf() !== "board") { el.innerHTML = `<div class="empty">Real-world examples are drilled in Unit 3. <button class="btn" data-ctopic="u3">Open Unit 3</button></div>`; return; }
     if (!rwe().length) { el.innerHTML = `<div class="empty">No Unit 3 examples loaded.</div>`; return; }
     const xs = rPool(), n = rScope(), q = rQueue();
-    const seg = `<div class="sx-seg" role="tablist" aria-label="Drill type">${Object.entries(RM).map(([k, v]) => `<button role="tab" data-rx="mode" data-v="${k}" aria-selected="${R.mode === k}">${v}</button>`).join("")}</div>`;
-    const where = n === "u3" ? "Unit 3" : n + " " + SHORT[n];
+    const seg = `<div class="sx-seg" role="group" aria-label="Drill type">${Object.entries(RM).map(([k, v]) => `<button data-rx="mode" data-v="${k}" aria-pressed="${R.mode === k}">${v} <kbd aria-label="Shift ${v[0]}">⇧${v[0]}</kbd></button>`).join("")}</div>`;
+    const where = n === "u3" ? "Unit 3" : n + " " + CT[n].short;
     let body = "";
     if (R.mode === "recall") {
       if (!R.cur || !q.some(e => e.id === R.cur)) { R.cur = q[0]?.id || null; R.flipped = false; R.call = 0; }
-      const info = `<div class="progress-line"><span>${q.length} due or new in ${where}${R.sess?.n ? ` · ${R.sess.n} drilled this session` : ""}</span><span>${xs.length} examples</span></div>`;
+      const left = unlisted();
+      const info = `<div class="progress-line"><span>${q.length ? `${q.length} to drill in ${where}, about ${Math.max(1, Math.round(q.length * 1.5))} min` : `Nothing due in ${where}`}${R.sess?.n ? ` · ${R.sess.n} drilled this session` : ""}</span><span>${xs.length} examples${left ? ` · ${left} not listed yet` : ""}</span></div>`;
       const ctx = rCtx();
-      if (!R.cur) body = info + (recap(R, ctx) || `<div class="empty">All caught up in ${where}. Every example here is listed and not yet due. Try Numbers or Pick the example, or pick another subtopic.</div>`);
-      else {
+      if (!R.cur) {
+        const more = left ? `<div class="sx-batch"><p>${left} example${left === 1 ? "" : "s"} here ${left === 1 ? "isn't" : "aren't"} listed yet. They come in batches of ${BATCH}, so each session stays short.</p><button class="sx-drill" data-rmore="1">List the next ${Math.min(BATCH, left)} <kbd>M</kbd></button></div>` : "";
+        body = info + (recap(R, ctx) || (more ? "" : `<div class="empty">All caught up in ${where}. Every example here is listed and not yet due. Try Numbers or Pick the example, or pick another subtopic.</div>`)) + more;
+      } else {
         const e = RBY(R.cur), p = priceOf(e.id), c = termDay(e.id);
-        const quoteL = `<div class="sx-cq"><span class="tk">${esc(e.tk)}</span>${p == null ? `<span class="ipo">Not listed yet · lists at 10.00</span>` : `<span class="px">${fmt(p)}</span>${pill(signed(c), cls(c), "Today " + signed(c))}`}<span class="ipo">Exam value ${e.score}</span></div>`;
-        const front = `<h2 class="title">${esc(e.mem.tag)}</h2><p class="note">${esc(e.title)} · ${esc(e.region)} · ${esc(e.years)}</p>`;
-        const back = R.flipped ? `<div class="sx-mem">${storyHTML(e.mem)}${numsHTML(e.mem)}<p class="sx-use"><b>Use it for</b> ${esc(e.mem.use)}</p>${butHTML(e.mem)}</div>${callTag(R.call)}${gradeRow("data-rgrade", e.id)}<details class="sx-more"><summary>Facts, diagram, evaluation and sources</summary>${factSheet(e)}</details>`
-          : `<p class="prompt">Say the story, the three numbers and the “but” out loud, as you'd use them in a Paper 2 answer.</p>${callRow()}`;
-        body = info + tradeBar(R, ctx) + `<div class="flash"><div class="head"><span>${e.n} ${esc(CT[e.n].name)}</span>${stateTag(e.id)}</div>${quoteL}${front}${back}</div>`;
+        const quoteL = `<div class="sx-cq"><span class="tk">${esc(e.tk)}</span>${p == null ? `<span class="ipo">Not listed yet · lists at 10.00</span>` : `<span class="px">${fmt(p)}</span>${pill(signed(c), moveCls(e.id, c), "Today " + signed(c))}`}</div>`;
+        const front = `<h2 class="title">${esc(e.mem.tag)}</h2><p class="note">${esc(e.cue)} · ${esc(e.region)}</p>`;
+        const back = R.flipped ? `${tickList(e)}${callTag(R.call)}<p class="sx-suggest" id="rSuggest" aria-live="polite">${suggestHTML()}</p>${gradeRow("data-rgrade", e.id)}${rankLine(e)}<details class="sx-more"><summary>Facts, diagram, evaluation and sources</summary>${factSheet(e)}</details>`
+          : `<p class="prompt">Say the story, the three numbers and the “but” out loud, as you'd use them in a Paper 2 answer.</p>${callRow("grade on what you actually said, not your guess")}`;
+        body = info + tradeBar(R, ctx) + `<div class="flash" tabindex="-1"><div class="head"><span>${e.n} ${esc(CT[e.n].name)}</span>${stateTag(e.id)}</div>${quoteL}${front}${back}</div>`;
       }
     } else if (R.mode === "numbers") {
       if (!R.num || !xs.some(e => e.id === R.num.id)) rNewNum();
       const e = RBY(R.num.id), A = R.num;
       const blank = A.answered ? `<span class="num-hl">${esc(A.n)}</span>` : `<input id="rNumIn" class="field" inputmode="decimal" autocomplete="off" aria-label="The number">`;
-      body = `<div class="flash"><div class="head"><span>${e.n} ${esc(CT[e.n].name)}</span></div><div class="sx-cq"><span class="tk">${esc(e.tk)}</span><span class="ipo">${esc(e.mem.tag)}</span></div><h2 class="title">${esc(e.title)}</h2>
+      body = `<div class="flash" tabindex="-1"><div class="head"><span>${e.n} ${esc(CT[e.n].name)}</span></div><div class="sx-cq"><span class="tk">${esc(e.tk)}</span><span class="ipo">${esc(e.mem.tag)}</span></div><h2 class="title">${esc(e.cue)}</h2>
         <div class="cloze">${blank} <span>${esc(A.w)}</span></div>
-        ${A.answered ? `<div class="feedback ${A.ok ? "ok" : "no"}"><b>${A.ok ? "Right." : `Not quite. You wrote ${esc(A.given || "nothing")}.`}</b><p class="detail">The answer is ${esc(A.n)}. The story: ${esc(e.mem.story.replace(/→/g, ">"))}</p></div><div><button class="btn primary" data-rx="next">Next number <kbd>Enter</kbd></button></div>`
-        : `<div class="toolbar"><button class="btn primary" data-rx="check">Check <kbd>Enter</kbd></button><button class="btn" data-rx="reveal">Reveal</button></div><p class="note">Units don't matter, and answers within 1% count.</p>`}
+        ${A.answered ? `<div class="feedback ${A.ok ? "ok" : "no"}"><b>${A.ok ? "Right." : `Not quite. You wrote ${esc(A.given || "nothing")}.`}</b><p class="detail">The answer is ${esc(A.n)}.</p>${storyHTML(e.mem)}</div><div><button class="btn primary" data-rx="next">Next number <kbd>Enter</kbd></button></div>`
+        : `<div class="toolbar"><button class="btn primary" data-rx="check">Check <kbd>Enter</kbd></button><button class="btn" data-rx="reveal">Reveal <kbd>Shift</kbd> <kbd>Enter</kbd></button></div><p class="note">Units don't matter, and answers within 1% count.</p>`}
         ${scoreLine("num")}</div>`;
     } else {
       if (!R.pick || !R.pick.opts.every(id => RBY(id))) rNewPick();
       if (!R.pick) body = `<div class="empty">Not enough examples here to make a question. Pick Unit 3 as a whole.</div>`;
       else {
-        const Q = R.pick, t = RBY(Q.id);
-        body = `<div class="quiz"><p class="note">Which example would you use for…</p><p class="question">${esc(Q.concept)}</p>
+        const Q = R.pick, t = RBY(Q.id), ch = Q.choice && RBY(Q.choice);
+        body = `<div class="quiz" tabindex="-1"><p class="note">Which example would you use for…</p><p class="question">${esc(Q.concept)}</p>
           <div class="options">${Q.opts.map((id, i) => { const o = RBY(id), cl = Q.choice ? (id === Q.id ? "right" : id === Q.choice ? "wrong" : "") : "";
-            return `<button class="opt ${cl}" data-rx="opt" data-v="${esc(id)}" ${Q.choice ? "disabled" : ""}><span class="k">${i + 1}</span><b>${esc(o.tk)} · ${esc(o.mem.tag)}</b><span class="meta">${esc(o.region)} · ${o.n} ${SHORT[o.n]}</span></button>`; }).join("")}</div>
-          ${Q.choice ? `<div class="feedback ${Q.choice === Q.id ? "ok" : "no"}"><b>${Q.choice === Q.id ? "Right." : "Not this time."}</b><p class="detail"><b>${esc(t.mem.tag)}</b>: ${esc(t.hook)}</p></div><div><button class="btn primary" data-rx="nextpick">Next question <kbd>Enter</kbd></button></div>` : `<p class="keys">Keys <kbd>1</kbd> to <kbd>4</kbd></p>`}
+            const sr = Q.choice ? (id === Q.id ? `<span class="sr-only">Correct answer. </span>` : id === Q.choice ? `<span class="sr-only">Your choice. </span>` : "") : "";
+            return `<button class="opt ${cl}" data-rx="opt" data-v="${esc(id)}" ${Q.choice ? "disabled" : ""}><span class="k">${i + 1}</span><b>${sr}${esc(o.tk)} · ${esc(o.mem.tag)}</b><span class="meta">${esc(o.region)}${Q.choice ? ` · ${o.n} ${CT[o.n].short}` : ""}</span></button>`; }).join("")}</div>
+          ${Q.choice ? `<div class="feedback ${Q.choice === Q.id ? "ok" : "no"}"><b>${Q.choice === Q.id ? "Right." : "Not this time."}</b>
+            ${Q.choice === Q.id ? `<p class="detail"><b>${esc(t.mem.tag)}</b>: ${esc(t.hook)}</p>` : `<p class="detail">You picked <b>${esc(ch.mem.tag)}</b>, which is for ${esc(ch.mem.use)}.</p><p class="detail"><b>${esc(t.mem.tag)}</b> fits “${esc(Q.concept)}”: ${esc(t.hook)}</p>`}</div>
+            <div><button class="btn primary" data-rx="nextpick">Next question <kbd>Enter</kbd></button></div>` : `<p class="keys">Keys <kbd>1</kbd> to <kbd>4</kbd></p>`}
           ${scoreLine("pick")}</div>`;
       }
     }
     el.innerHTML = seg + body;
     if (R.mode === "numbers" && !R.num?.answered) setTimeout(() => document.getElementById("rNumIn")?.focus({ preventScroll: true }), 0);
+    else if (R.focusCard) el.querySelector(".flash, .quiz")?.focus({ preventScroll: true });
+    R.focusCard = false;
   }
   const rerenderRwe = () => { if (rhost) renderRwe(rhost); renderStats(); renderTicker(); };
   function rGrade(g) {
     const id = R.cur; if (!id || !R.flipped) return;
     if (!R.sess) R.sess = session();
-    R.undo = { id, card: P.cards[id] ? JSON.parse(JSON.stringify(P.cards[id])) : null, sess: JSON.parse(JSON.stringify(R.sess)), call: R.call, redo: R.redo?.slice() };
+    const wasNew = !prog(id);
+    R.undo = { id, card: P.cards[id] ? JSON.parse(JSON.stringify(P.cards[id])) : null, sess: JSON.parse(JSON.stringify(R.sess)), call: R.call, redo: R.redo?.slice(), newDone: R.newDone };
     if (R.redo) { R.redo = R.redo.filter(x => x !== id); if (!R.redo.length) R.redo = null; }
     grade(id, g, R.call || 0); R.call = 0;
+    if (wasNew) R.newDone++;
     afterGrade(R, id);
-    say(`Graded ${g}.`);
-    R.cur = rQueue().filter(e => e.id !== id)[0]?.id || null; R.flipped = false;
+    say(`Graded ${GL[g]}.`);
+    R.cur = rQueue().filter(e => e.id !== id)[0]?.id || null; R.flipped = false; R.focusCard = true;
     rerenderRwe();
   }
   function rUndo() {
     const u = R.undo; if (!u) return;
     if (u.card) P.cards[u.id] = u.card; else delete P.cards[u.id];
     persist();
-    R.sess = u.sess; R.redo = u.redo || null; R.cur = u.id; R.flipped = true; R.call = u.call; R.undo = null;
+    R.sess = u.sess; R.redo = u.redo || null; R.cur = u.id; R.flipped = true; R.call = u.call; R.newDone = u.newDone; R.undo = null; R.ticks = new Set(); R.touched = false;
     say("Last grade undone."); rerenderRwe();
   }
   function rPractice(k, ok) { P.rwe = P.rwe || {}; const x = P.rwe[k] || { right: 0, total: 0 }; x.total++; if (ok) x.right++; P.rwe[k] = x; persist(); }
@@ -660,48 +710,65 @@ window.TEUStocks = (() => {
   }
   function rChoose(id) {
     const Q = R.pick; if (!Q || Q.choice) return;
-    Q.choice = id; rPractice("pick", id === Q.id); say(id === Q.id ? "Right." : "Not this time.");
+    Q.choice = id; rPractice("pick", id === Q.id); say(id === Q.id ? "Right." : "Not this time. The answer is " + RBY(Q.id).mem.tag);
     renderRwe(rhost); setTimeout(() => rhost.querySelector('[data-rx="nextpick"]')?.focus({ preventScroll: true }), 0);
   }
+  function setMode(m) { R.mode = m; ui.rmode = m; saveUi(); R.focusCard = true; renderRwe(rhost); }
+  const listMore = () => { R.batch += BATCH; R.cur = null; R.focusCard = true; renderRwe(rhost); };
   function wireRwe(el) {
     el.addEventListener("click", ev => {
       const b = ev.target.closest("button"); if (!b || !el.contains(b)) return;
       const d = b.dataset;
-      if (d.rx === "mode") { R.mode = d.v; ui.rmode = d.v; saveUi(); renderRwe(el); }
-      else if (d.call) { R.call = +d.call; R.flipped = true; renderRwe(el); }
-      else if (d.cflip) { R.flipped = true; renderRwe(el); }
+      if (d.rx === "mode") setMode(d.v);
+      else if (d.call) rFlip(+d.call);
+      else if (d.cflip) rFlip(0);
+      else if (d.tick) toggleTick(+d.tick);
       else if (d.rgrade) rGrade(d.rgrade);
       else if (d.rundo) rUndo();
-      else if (d.rredo) { R.redo = R.sess.missed.slice(); R.sess.missed = []; R.cur = null; renderRwe(el); }
+      else if (d.rredo) { R.redo = R.sess.missed.slice(); R.sess.missed = []; R.cur = null; R.focusCard = true; renderRwe(el); }
+      else if (d.rmore) listMore();
       else if (d.rx === "check") rCheck(false);
       else if (d.rx === "reveal") rCheck(true);
       else if (d.rx === "next") { rNewNum(); renderRwe(el); }
       else if (d.rx === "opt") rChoose(d.v);
-      else if (d.rx === "nextpick") { rNewPick(); renderRwe(el); }
+      else if (d.rx === "nextpick") { rNewPick(); R.focusCard = true; renderRwe(el); }
       else return;                                   // data-view, data-ctopic: app.js
       ev.stopPropagation();
     });
   }
-  // Keys in the examples drill. Typing in the number box only sends Enter.
+  // Keys in the examples drill. Typing in the number box only sends Enter (Shift+Enter reveals).
   function rweKey(ev, free) {
-    const k = ev.key, typing = ev.target.id === "rNumIn";
-    if (R.mode === "numbers") { if (k === "Enter") { ev.preventDefault(); R.num?.answered ? (rNewNum(), renderRwe(rhost)) : rCheck(false); } return; }
-    if (typing) return;
+    const k = ev.key, typing = ev.target.id === "rNumIn", lk = k.length === 1 ? k.toLowerCase() : "";
+    if (typing) {
+      if (k === "Enter") { ev.preventDefault(); ev.shiftKey ? rCheck(true) : rCheck(false); }
+      return;
+    }
+    if (ev.shiftKey && (lk === "r" || lk === "n" || lk === "p")) return setMode({ r: "recall", n: "numbers", p: "pick" }[lk]);
     const n = "1234".includes(k) && k.length === 1 ? +k - 1 : -1;
+    if (R.mode === "numbers") {
+      if (k === "Enter" && R.num?.answered) { ev.preventDefault(); rNewNum(); renderRwe(rhost); }
+      return;
+    }
     if (R.mode === "pick") {
       if (!R.pick) return;
       if (!R.pick.choice && n >= 0) rChoose(R.pick.opts[n]);
-      else if (R.pick.choice && k === "Enter") { ev.preventDefault(); rNewPick(); renderRwe(rhost); }
+      else if (R.pick.choice && k === "Enter") { ev.preventDefault(); rNewPick(); R.focusCard = true; renderRwe(rhost); }
       return;
     }
-    if ((k === "u" || k === "U") && R.undo) return rUndo();
-    if (!R.cur) { if (k === "Enter" && free && rhost.querySelector("[data-rredo]")) { ev.preventDefault(); rhost.querySelector("[data-rredo]").click(); } return; }
-    if (!R.flipped && "bsBS".includes(k) && k.length === 1) { R.call = k.toLowerCase() === "b" ? 1 : -1; R.flipped = true; renderRwe(rhost); }
-    else if (!R.flipped && (k === " " || k === "Enter") && free) { ev.preventDefault(); R.flipped = true; renderRwe(rhost); }
-    else if (R.flipped && n >= 0) rGrade(["again", "hard", "good", "easy"][n]);
+    if (lk === "u" && R.undo) return rUndo();
+    if (!R.cur) {
+      if (k === "Enter" && free && rhost.querySelector("[data-rredo]")) { ev.preventDefault(); rhost.querySelector("[data-rredo]").click(); }
+      else if (lk === "m" && rhost.querySelector("[data-rmore]")) listMore();
+      return;
+    }
+    if (!R.flipped && (lk === "b" || lk === "s")) rFlip(lk === "b" ? 1 : -1);
+    else if (!R.flipped && (k === " " || k === "Enter") && free) { ev.preventDefault(); rFlip(0); }
+    else if (R.flipped && "qwert".includes(lk) && lk) toggleTick("qwert".indexOf(lk));
+    else if (R.flipped && k === "Enter" && R.touched && free) { ev.preventDefault(); rGrade(suggested()); }
+    else if (R.flipped && n >= 0) rGrade(GR[n]);
   }
   const rweDue = () => worldOf() === "board" ? rPool().filter(e => prog(e.id) && isDue(e.id)).length : 0;
-  const resetRwe = () => { R.cur = null; R.sess = R.redo = R.undo = null; R.num = R.pick = null; };
+  const resetRwe = () => { R.cur = null; R.sess = R.redo = R.undo = null; R.num = R.pick = null; R.batch = BATCH; R.newDone = 0; };
 
   // ---------- Toasts ----------
   function toast(kind, title, body) {

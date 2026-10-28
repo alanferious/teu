@@ -1,11 +1,12 @@
 // Unit 3 real-world examples: the best recent, non-US cases for each macro subtopic, researched and
-// checked against the linked sources on 28 October 2026. Same shape as data/examples.js. The ratings are
+// checked against the linked sources on 28 October 2026. Same shape as data/examples.js, plus tk (ticker) and cue (a figure-free prompt for the drills). The ratings are
 // ours, not examiner scores. Figures move: check the newest numbers before an exam.
 const MACRO = [
  {
   "id": "ireland-gdp-vs-gni-star",
   "tk": "GNIX",
   "title": "Ireland: GDP up 8%, real economy up 4.7%",
+  "cue": "Ireland: headline GDP vs the real economy",
   "region": "Ireland",
   "years": "2024–2026",
   "subtopic": "3.1",
@@ -71,6 +72,7 @@ const MACRO = [
   "id": "nigeria-gdp-rebasing-2025",
   "tk": "NAIJ",
   "title": "Nigeria rebases GDP: a third bigger overnight",
+  "cue": "Nigeria rebases its GDP",
   "region": "Nigeria",
   "years": "2025–2026",
   "subtopic": "3.1",
@@ -135,6 +137,7 @@ const MACRO = [
   "id": "bhutan-gnh-vs-emigration",
   "tk": "BHUT",
   "title": "Bhutan: happiness index up, young graduates leaving",
+  "cue": "Bhutan: a happiness index vs young people leaving",
   "region": "Bhutan",
   "years": "2022–2025",
   "subtopic": "3.1",
@@ -196,6 +199,7 @@ const MACRO = [
   "id": "new-zealand-per-capita-recession",
   "tk": "KIWI",
   "title": "New Zealand's per-person recession",
+  "cue": "New Zealand: GDP vs GDP per person",
   "region": "New Zealand",
   "years": "2024–2026",
   "subtopic": "3.1 (also 3.2)",
@@ -259,6 +263,7 @@ const MACRO = [
   "id": "euro-area-energy-shocks-2022-2026",
   "tk": "ECBX",
   "title": "Europe's two energy shocks: 2022 and 2026",
+  "cue": "Euro area: two energy price shocks",
   "region": "Euro area (Germany as main case)",
   "years": "2022–2026",
   "subtopic": "3.2 (also 3.3)",
@@ -323,6 +328,7 @@ const MACRO = [
   "id": "brazil-inflationary-gap-selic-15",
   "tk": "SELC",
   "title": "Brazil: a hot economy meets a 15% interest rate",
+  "cue": "Brazil: an overheating economy meets a very high policy rate",
   "region": "Brazil",
   "years": "2025–2026",
   "subtopic": "3.2 (also 3.5)",
@@ -365,7 +371,7 @@ const MACRO = [
    "https://www.canalrural.com.br/economia/copom-reafirma-cautela-e-reduz-selic-para-1375-ao-ano/"
   ],
   "mem": {
-   "tag": "Hot jobs, 15% Selic",
+   "tag": "Brazil runs hot",
    "story": "Strong demand and record-low unemployment → positive output gap → Selic held at 15% → growth slows to 2.3%, inflation back inside target",
    "numbers": [
     [
@@ -389,6 +395,7 @@ const MACRO = [
   "id": "china-deflation-ended-by-oil",
   "tk": "CHPI",
   "title": "China: 41 months of factory deflation, ended by a war",
+  "cue": "China: factory-gate deflation, and how it ended",
   "region": "China",
   "years": "2022–2026",
   "subtopic": "3.3",
@@ -453,6 +460,7 @@ const MACRO = [
   "id": "south-africa-structural-unemployment",
   "tk": "SAJB",
   "title": "South Africa: a third of the labour force without work",
+  "cue": "South Africa: structural unemployment",
   "region": "South Africa",
   "years": "2026",
   "subtopic": "3.3 (also 3.4)",
@@ -492,7 +500,7 @@ const MACRO = [
    "https://www.statssa.gov.za/?p=19804"
   ],
   "mem": {
-   "tag": "A third out of work",
+   "tag": "Locked out of work",
    "story": "skills and location mismatch → 33.6% official unemployment → 3.7 million discouraged job-seekers hidden → 43.8% wider rate → youth rate 47.4%",
    "numbers": [
     [
@@ -516,6 +524,7 @@ const MACRO = [
   "id": "uk-second-energy-shock",
   "tk": "UKCP",
   "title": "UK: the second energy shock in four years",
+  "cue": "UK: inflation from a second energy shock",
   "region": "United Kingdom",
   "years": "2022–2026",
   "subtopic": "3.3 (also 3.5)",
@@ -580,6 +589,7 @@ const MACRO = [
   "id": "japan-wages-chase-prices",
   "tk": "JPWG",
   "title": "Japan: wages finally chase prices",
+  "cue": "Japan: wages start catching up with prices",
   "region": "Japan",
   "years": "2022–2026",
   "subtopic": "3.3 (also 3.5)",
@@ -646,6 +656,7 @@ const MACRO = [
   "id": "brazil-bolsa-familia-tax-reform",
   "tk": "BRBF",
   "title": "Brazil: cash at the bottom, a minimum tax at the top",
+  "cue": "Brazil: cash transfers plus a minimum tax on top earners",
   "region": "Brazil",
   "years": "2023–2026",
   "subtopic": "3.4 (also 3.6)",
@@ -713,6 +724,7 @@ const MACRO = [
   "id": "south-africa-inequality-srd-grant",
   "tk": "SAGR",
   "title": "South Africa: R370 a month and the basic income debate",
+  "cue": "South Africa: a relief grant and the basic income debate",
   "region": "South Africa",
   "years": "2020–2026",
   "subtopic": "3.4 (also 3.6)",
@@ -753,7 +765,7 @@ const MACRO = [
    "https://www.ewn.co.za/2026/10/22/srd-grant-extended-for-another-year-despite-treasury-saying-expanding-the-scheme-is-risky"
   ],
   "mem": {
-   "tag": "R370 and rising",
+   "tag": "Grant as a lifeline",
    "story": "apartheid legacy and 33.6% unemployment → top 10% own over 80% of wealth → R370 SRD grant for millions → court ruling could lift cost to R74bn → basic income grant debate",
    "numbers": [
     [
@@ -777,6 +789,7 @@ const MACRO = [
   "id": "spain-minimum-wage-rises",
   "tk": "ESMW",
   "title": "Spain: a 66% minimum wage rise in eight years",
+  "cue": "Spain: big minimum wage rises",
   "region": "Spain",
   "years": "2018–2026",
   "subtopic": "3.4 (also 3.3)",
@@ -818,7 +831,7 @@ const MACRO = [
    "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/une_rt_m?geo=ES&geo=EU27_2020&age=Y_LT25&age=TOTAL&sex=T&s_adj=SA&unit=PC_ACT&time=2026-08"
   ],
   "mem": {
-   "tag": "Minimum wage up 66%",
+   "tag": "Spain lifts the floor",
    "story": "€735.90 minimum wage in 2018 → 22% jump in 2019 → €1,221 by 2026 → Bank of Spain finds slower job growth for affected workers → unemployment still falls to about 10%",
    "numbers": [
     [
@@ -842,6 +855,7 @@ const MACRO = [
   "id": "kenya-cash-transfers-ubi",
   "tk": "KEUBI",
   "title": "Kenya: what happens when you just give people cash",
+  "cue": "Kenya: a long-term basic income trial",
   "region": "Kenya",
   "years": "2018–2025",
   "subtopic": "3.4",
@@ -905,6 +919,7 @@ const MACRO = [
   "id": "turkey-monetary-u-turn",
   "tk": "TCMB",
   "title": "Turkey's U-turn: from 8.5% to 50% interest rates",
+  "cue": "Turkey: from ultra-low rates to tight money",
   "region": "Turkey",
   "years": "2022–2026",
   "subtopic": "3.5 (also 3.3)",
@@ -948,7 +963,7 @@ const MACRO = [
    "https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB%20EN/Main%20Menu/Statistics/Inflation%20Data"
   ],
   "mem": {
-   "tag": "Eight-and-a-half to fifty",
+   "tag": "Turkey's rate U-turn",
    "story": "Rates held at 8.5% while inflation hit 85.51% → June 2023 U-turn, rate up to 50% by March 2024 → inflation peaks above 75% then falls → 29.73% by September 2026 → cuts begin, 36% in October 2026",
    "numbers": [
     [
@@ -972,6 +987,7 @@ const MACRO = [
   "id": "ecb-hike-cut-hike-energy-shock",
   "tk": "ECBU",
   "title": "The ECB: hike, cut, then hike again",
+  "cue": "The ECB: hiking, cutting, then hiking again",
   "region": "Eurozone",
   "years": "2022–2026",
   "subtopic": "3.5 (also 3.3)",
@@ -1037,6 +1053,7 @@ const MACRO = [
   "id": "japan-ends-negative-rates",
   "tk": "BOJX",
   "title": "Japan ends negative interest rates",
+  "cue": "Japan: the end of negative interest rates",
   "region": "Japan",
   "years": "2024–2026",
   "subtopic": "3.5 (also 3.3)",
@@ -1079,7 +1096,7 @@ const MACRO = [
    "https://www.nationthailand.com/news/40071184"
   ],
   "mem": {
-   "tag": "Goodbye minus 0.1",
+   "tag": "Japan leaves negative",
    "story": "Wages and prices finally rise → March 2024: rate -0.1% to 0–0.1% → bond buying cut toward ¥3 trillion a month → steady 0.25-point hikes → 1.25% in September 2026, real rate still negative",
    "numbers": [
     [
@@ -1103,6 +1120,7 @@ const MACRO = [
   "id": "china-pushing-on-a-string",
   "tk": "PBOC",
   "title": "China: cheap money nobody wants to borrow",
+  "cue": "China: rate cuts that don't get anyone borrowing",
   "region": "China",
   "years": "2024–2026",
   "subtopic": "3.5 (also 3.2, 3.3)",
@@ -1169,6 +1187,7 @@ const MACRO = [
   "id": "germany-debt-brake-reform",
   "tk": "BREMS",
   "title": "Germany loosens its debt brake",
+  "cue": "Germany loosens its debt brake",
   "region": "Germany",
   "years": "2025–2026",
   "subtopic": "3.6 (also 3.2, 3.7)",
@@ -1235,6 +1254,7 @@ const MACRO = [
   "id": "argentina-milei-chainsaw",
   "tk": "MILEI",
   "title": "Argentina's chainsaw: from deficit to surplus",
+  "cue": "Argentina: from fiscal deficit to surplus",
   "region": "Argentina",
   "years": "2023–2026",
   "subtopic": "3.6 (also 3.2, 3.3)",
@@ -1303,6 +1323,7 @@ const MACRO = [
   "id": "uk-mini-budget-gilt-crisis",
   "tk": "GILT",
   "title": "The UK mini-budget and the gilt crisis",
+  "cue": "UK: unfunded tax cuts and the gilt crisis",
   "region": "United Kingdom",
   "years": "2022–2026",
   "subtopic": "3.6 (also 3.5)",
@@ -1347,7 +1368,7 @@ const MACRO = [
    "https://lbc.co.uk/business/55649f3f5f1c43a199fba3490a516c5e"
   ],
   "mem": {
-   "tag": "£45bn, 44 days",
+   "tag": "Mini-budget meltdown",
    "story": "£45bn of unfunded tax cuts → 30-year gilt yields up 160bp in four days → Bank of England emergency bond buying → tax cuts reversed, Truss resigns → UK still pays a credibility premium in 2026",
    "numbers": [
     [
@@ -1371,6 +1392,7 @@ const MACRO = [
   "id": "kenya-finance-bill-protests",
   "tk": "RUTO",
   "title": "Kenya: the tax rise that was stopped in the street",
+  "cue": "Kenya: a tax-raising Finance Bill meets protests",
   "region": "Kenya",
   "years": "2024–2026",
   "subtopic": "3.6 (also 3.4)",
@@ -1434,6 +1456,7 @@ const MACRO = [
   "id": "india-pli-manufacturing",
   "tk": "PLIX",
   "title": "India pays firms to make phones: the PLI scheme",
+  "cue": "India: paying firms for every phone made",
   "region": "India",
   "years": "2021–2026",
   "subtopic": "3.7",
@@ -1500,6 +1523,7 @@ const MACRO = [
   "id": "argentina-chainsaw-deregulation",
   "tk": "MOTO",
   "title": "Argentina deregulates: rent decontrol, privatisation and a labour law",
+  "cue": "Argentina: rent decontrol, privatisation and labour reform",
   "region": "Argentina",
   "years": "2023–2026",
   "subtopic": "3.7",
@@ -1564,6 +1588,7 @@ const MACRO = [
   "id": "eu-chips-act-intel-magdeburg",
   "tk": "CHIPS",
   "title": "EU Chips Act: a 20% target and a cancelled €10bn Intel fab",
+  "cue": "The EU Chips Act and a cancelled Intel plant",
   "region": "European Union (Germany, Poland)",
   "years": "2023–2026",
   "subtopic": "3.7",
@@ -1629,6 +1654,7 @@ const MACRO = [
   "id": "singapore-skillsfuture",
   "tk": "SKFU",
   "title": "Singapore's SkillsFuture: training credits for every adult",
+  "cue": "Singapore: training credits for every adult",
   "region": "Singapore",
   "years": "2024–2026",
   "subtopic": "3.7 (also 3.4)",

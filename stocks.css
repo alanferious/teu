@@ -69,7 +69,7 @@ body[data-world="board"] .ticker .q .ipo { color: var(--ink-2); }
 @media (hover: hover) and (pointer: fine) { .ticker .tape-btn:hover { color: #fff; } }
 .ticker .tape-btn:focus-visible { outline-offset: -3px; }
 .ticker.paused .tape { animation-play-state: paused; }
-body[data-world="board"][data-view="cards"] .ticker, body[data-world="board"][data-view="diagrams"] .ticker, body[data-world="board"][data-view="quiz"] .ticker { display: none; }
+body[data-world="board"][data-view="cards"] .ticker, body[data-world="board"][data-view="diagrams"] .ticker, body[data-world="board"][data-view="quiz"] .ticker, body[data-world="board"][data-view="rwe"] .ticker { display: none; }
 
 /* Notes in Unit 3 are the Stocks screen: it brings its own watchlist, so the rail and page head step aside */
 body[data-world="board"][data-view="notes"] .layout { grid-template-columns: minmax(0, 1fr); padding-top: 0; }
@@ -206,7 +206,7 @@ body[data-world="board"][data-view="notes"] #view-notes > .toolbar { display: no
 .sx-story .src { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
 .sx-story .src.idea { color: #E5E5EA; } .sx-story .src.trap { color: var(--sx-down); } .sx-story .src.eval { color: var(--sx-gold); }
 .sx-story .src .sx-hl { color: var(--sx-gold); }
-.sx-story .txt { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 6px 0 0; }
+.sx-story .txt { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 6px 0 0; text-wrap: pretty; }
 .sx-story .wrong { color: var(--ink-2); text-decoration: line-through; text-decoration-color: var(--sx-down); font-weight: 500; font-size: 14.5px; display: block; margin-bottom: 2px; }
 .sx-keys { color: var(--ink-2); font-size: 12.5px; margin-top: 36px; border-top: 1px solid var(--rule); padding-top: 12px; }
 .sx-keys kbd { font-size: 10.5px; line-height: 15px; }
@@ -306,6 +306,29 @@ body[data-world="board"] .opt.right { border-color: var(--sx-up); } body[data-wo
 .sx-seg button[aria-selected="true"] { background: var(--panel-3); color: #fff; }
 @media (hover: hover) and (pointer: fine) { .sx-seg button[aria-selected="false"]:hover { color: #fff; } }
 #view-rwe .flash { max-width: 900px; }
+#view-rwe .flash:focus, #view-rwe .quiz:focus { outline: none; }
+.sx-seg kbd { font-size: 10px; line-height: 14px; margin-left: 4px; opacity: .8; }
+.sx-mem p, .sx-about, .sx-target p { text-wrap: pretty; }
+/* Recall in the examples drill: tick what you got, and TEU suggests the grade */
+.sx-checks { display: grid; border-top: 1px solid var(--rule); }
+.sx-tickrow { display: grid; grid-template-columns: 30px 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.sx-tick { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--ink-2); background: none; display: grid; place-items: center; color: transparent; padding: 0; transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
+.sx-tick svg { width: 14px; height: 14px; }
+.sx-tickrow.on .sx-tick { background: var(--sx-pill-up); border-color: var(--sx-pill-up); color: #fff; }
+.sx-tickrow > kbd { margin-top: 4px; font-size: 10.5px; line-height: 15px; }
+.sx-tickrow .body > b { display: block; font-size: 14px; color: var(--ink-2); font-weight: 600; }
+.sx-tickrow .body > b.fig { font-size: 26px; color: #fff; letter-spacing: -.02em; line-height: 1.15; }
+.sx-tickrow .body .w { color: var(--ink-2); font-size: 14px; }
+.sx-tickrow .body .story { margin-top: 2px; }
+.sx-tickrow .body p { margin-top: 2px; }
+.sx-suggest { font-size: 14.5px; color: var(--ink-2); }
+.sx-suggest b { color: #fff; }
+body[data-world="board"] .grades .btn[data-hint] { outline: 2px solid var(--sx-blue); outline-offset: 2px; }
+.sx-batch { background: var(--panel); border-radius: 14px; padding: 16px 20px; max-width: 900px; display: grid; gap: 12px; justify-items: start; }
+.sx-batch p { color: #E5E5EA; }
+body[data-world="board"] .feedback { border-top: 0; padding: 6px 0 2px; }
+body[data-world="board"] .feedback.ok > b { color: var(--sx-up); } body[data-world="board"] .feedback.no > b { color: var(--sx-down); }
+body[data-world="board"] .feedback .story { font-size: 15px; margin-top: 8px; }
 
 /* Record toasts: a notification banner, top right */
 .sx-toasts { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); right: 16px; z-index: 60; display: grid; gap: 8px; width: min(340px, calc(100vw - 32px)); pointer-events: none; }
