@@ -187,7 +187,7 @@ const CBY = Object.fromEntries([...CDEFS, ...CDIAG].map(x => [x.id, x]));
 // ---------- State & persistence ----------
 const S = { view: "notes", sec: "course", topic: "all", ctopic: "all", tier: "all", q: "", cq: "", sort: "score", sel: null, ...pickUI(lsGet(UI_KEY, {})) };
 function pickUI(u) { const o = {}; if (u.ctopic && (u.ctopic === "all" || CT[u.ctopic] || /^u[1-4]$/.test(u.ctopic))) o.ctopic = u.ctopic; if (u.topic && (u.topic === "all" || TOPIC[u.topic])) o.topic = u.topic; if (u.sel && BY_ID[u.sel]) o.sel = u.sel; return o; }
-const saveUI = () => lsSet(UI_KEY, { ctopic: S.ctopic, topic: S.topic, sel: S.sel });
+const saveUI = () => lsSet(UI_KEY, { ctopic: S.ctopic, topic: S.topic, sel: S.sel, tapePaused });
 let P = { cards: {}, numbers: { right: 0, total: 0 }, match: { right: 0, total: 0 }, quiz: { right: 0, total: 0 }, writes: [], rec: {}, updated: 0 };
 
 function mergeProgress(a, b) {
@@ -356,8 +356,18 @@ function renderTicker() {
   const q = d => { const p = priceOf(d.id), c = dayChg(d.id); return `<span class="q"><b>${esc(d.tk)}</b>${p == null ? `<span class="ipo">IPO</span>` : `<span class="p">${fmt(p)}</span><span class="${c > .004 ? "up" : c < -.004 ? "dn" : "ipo"}">${c > 0 ? "+" : c < 0 ? "−" : ""}${fmt(Math.abs(c))}</span>`}</span>`; };
   const run = items.map(q).join("");
   el.style.setProperty("--tape-s", Math.max(40, items.length * 2.6) + "s");
-  el.innerHTML = `<div class="tape" aria-hidden="true">${run}${run}</div><span class="sr-only">Unit 3 board: ${listed.length} of ${xs.length} terms listed.</span>`;
+  el.innerHTML = `<div class="tape" aria-hidden="true">${run}${run}</div><span class="sr-only">Unit 3 ticker: ${listed.length} of ${xs.length} terms listed.</span><button class="tape-btn" id="tickerPause" aria-pressed="false"></button>`;
+  paintTape();
 }
+let tapePaused = !!lsGet(UI_KEY, {}).tapePaused;
+function paintTape() {
+  const b = $("#tickerPause"); if (!b) return;
+  $("#ticker").classList.toggle("paused", tapePaused);
+  b.setAttribute("aria-pressed", tapePaused);
+  b.setAttribute("aria-label", tapePaused ? "Play the ticker" : "Pause the ticker");
+  b.innerHTML = tapePaused ? `<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg>` : `<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5h2v9H3zM7 1.5h2v9H7z" fill="currentColor"/></svg>`;
+}
+function toggleTape() { tapePaused = !tapePaused; saveUI(); paintTape(); }
 
 
 // ---------- Rail (course) ----------
@@ -783,6 +793,7 @@ const DECKS = {
 };
 function deckQueue(D) {
   const xs = D.items().filter(inScope);
+  if (D.redo?.length) return D.redo.map(id => CBY[id]).filter(x => x && inScope(x));
   const due = xs.filter(x => prog(x.id) && isDue(x.id)).sort((a, b) => prog(a.id).due - prog(b.id).due);
   const fresh = xs.filter(x => !prog(x.id));
   const later = $(D.all).checked ? xs.filter(x => prog(x.id) && !isDue(x.id)).sort((a, b) => prog(a.id).due - prog(b.id).due) : [];
@@ -797,12 +808,14 @@ function renderDeck(name) {
   const stx = worldOf() === "board" && name === "cards";
   const trade = stx ? TEUStocks.tradeBar(D) : "";
   if (!D.cur) {
-    $(D.el).innerHTML = (stx ? TEUStocks.recap(D) : trade) + (xs.length ? `<div class="empty">All caught up here. Tick “Include ${D.noun} that aren't due” to keep going, or pick another subtopic.</div>` : `<div class="empty">No ${D.noun} in this subtopic.</div>`);
+    const recap = stx ? TEUStocks.recap(D) : "";
+    if (recap) { $(D.el).innerHTML = recap; return; }
+    $(D.el).innerHTML = trade + (xs.length ? `<div class="empty">All caught up here. Tick “Include ${D.noun} that aren't due” to keep going, or pick another subtopic.</div>` : `<div class="empty">No ${D.noun} in this subtopic.</div>`);
     return;
   }
   const x = CBY[D.cur], t = CT[x.n];
   const board = worldOf() === "board" && name === "cards" && x.unit === "3";
-  const quote = board ? TEUStocks.cardQuote(x) : "";
+  const quote = board ? TEUStocks.cardQuote(x, $("#cardsRev").checked && !D.flipped) : "";
   const head = `<div class="head"><span>${x.n} ${esc(t.name)}</span>${hlMark(x.hl)}${stateTag(x.id)}</div>`;
   let body;
   if (name === "cards") {
@@ -817,9 +830,19 @@ function renderDeck(name) {
   }
   $(D.el).innerHTML = `${trade}<div class="flash">${head}${quote}${body}</div>`;
 }
+function deckUndo(name) {
+  const D = DECKS[name], u = D.undo; if (!u) return;
+  if (u.card) P.cards[u.id] = u.card; else delete P.cards[u.id];
+  persist();
+  D.sess = u.sess; D.redo = u.redo || null; D.cur = u.id; D.flipped = true; D.call = u.call; D.done = Math.max(0, D.done - 1); D.undo = null;
+  say("Last grade undone.");
+  renderRail(); renderStats(); renderTicker(); renderDeck(name);
+}
 function deckGrade(name, g) {
   const D = DECKS[name], id = D.cur, stx = worldOf() === "board" && name === "cards" && CBY[id].unit === "3";
   if (stx && !D.sess) D.sess = TEUStocks.session();
+  D.undo = { id, card: P.cards[id] ? JSON.parse(JSON.stringify(P.cards[id])) : null, sess: D.sess ? JSON.parse(JSON.stringify(D.sess)) : null, call: D.call, redo: D.redo?.slice() };
+  if (D.redo) { D.redo = D.redo.filter(x => x !== id); if (!D.redo.length) D.redo = null; }
   grade(id, g, stx ? D.call || 0 : 0); D.done++; D.call = 0;
   if (stx) TEUStocks.afterGrade(D, id);
   say(`Graded ${g}.`);
@@ -885,7 +908,7 @@ function renderView() {
 function ensureSel() { if (!S.sel || !BY_ID[S.sel] || !inTopic(BY_ID[S.sel])) S.sel = pool().sort((a, b) => b.score - a.score)[0]?.id || null; }
 function renderAll() { ensureSel(); applyWorld(); renderRail(); renderBay(); renderStats(); renderView(); saveUI(); }
 function setScope(key) {
-  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; DECKS.cards.sess = null;
+  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; DECKS.cards.sess = DECKS.cards.redo = DECKS.cards.undo = DECKS.diagrams.undo = null;
   if (S.cq) { S.cq = ""; $("#csearch").value = ""; }
   renderAll();
 }
@@ -921,6 +944,9 @@ document.addEventListener("click", ev => {
   }
   else if (d.cflip) { DECKS[S.view].flipped = true; renderDeck(S.view); }
   else if (d.call) { const D = DECKS.cards; D.call = +d.call; D.flipped = true; renderDeck("cards"); }
+  else if (d.undo) deckUndo(S.view);
+  else if (d.redrill) { const D = DECKS.cards; D.redo = D.sess.missed.slice(); D.sess.missed = []; D.cur = null; renderDeck("cards"); }
+  else if (t.id === "tickerPause") toggleTape();
   else if (d.cgrade) deckGrade(S.view, d.cgrade);
   else if (d.qopt) pickQuiz(d.qopt);
   else if (t.id === "quizNext") { newQuizQ(); renderQuiz(); }
@@ -963,9 +989,11 @@ document.addEventListener("keydown", ev => {
   const n = "1234".includes(ev.key) && ev.key.length === 1 ? +ev.key - 1 : -1;
   if (S.view === "notes" && worldOf() === "board" && TEUStocks.key(ev)) return;
   const D = DECKS[S.view];
+  if (D && (ev.key === "u" || ev.key === "U") && D.undo) { deckUndo(S.view); return; }
+  if (D && !D.cur && ev.key === "Enter" && free && $("[data-redrill]")) { ev.preventDefault(); $("[data-redrill]").click(); return; }
   if (D && D.cur) {
     const calls = S.view === "cards" && worldOf() === "board" && CBY[D.cur].unit === "3";
-    if (!D.flipped && calls && (ev.key === "b" || ev.key === "s")) { D.call = ev.key === "b" ? 1 : -1; D.flipped = true; renderDeck("cards"); }
+    if (!D.flipped && calls && (ev.key === "b" || ev.key === "s" || ev.key === "B" || ev.key === "S")) { D.call = ev.key.toLowerCase() === "b" ? 1 : -1; D.flipped = true; renderDeck("cards"); }
     else if (!D.flipped && (ev.key === " " || ev.key === "Enter") && free) { ev.preventDefault(); D.flipped = true; renderDeck(S.view); }
     else if (D.flipped && n >= 0) deckGrade(S.view, ["again", "hard", "good", "easy"][n]);
     return;

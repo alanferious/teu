@@ -5,7 +5,8 @@
 window.TEUStocks = (() => {
   const MS_DAY = 864e5, HOUR = 36e5, TARGET = 70;
   const EXAM = new Date(2026, 10, 10).getTime();            // Paper 2, 10 November 2026
-  const TICK = { "3.1": "GDP", "3.2": "ADAS", "3.3": "OBJ", "3.4": "INEQ", "3.5": "MPOL", "3.6": "FISC", "3.7": "SSP" };
+  const TICK = { "3.1": "MEAS", "3.2": "ADAS", "3.3": "OBJ", "3.4": "INEQ", "3.5": "MONP", "3.6": "FISC", "3.7": "SUPP" };
+  const SHORT = { "3.1": "Economic activity", "3.2": "AD and AS", "3.3": "Macro objectives", "3.4": "Inequality", "3.5": "Monetary policy", "3.6": "Fiscal policy", "3.7": "Supply-side" };
   const RANGES = [["1D", MS_DAY], ["1W", 7 * MS_DAY], ["2W", 14 * MS_DAY], ["1M", 30 * MS_DAY], ["ALL", Infinity]];
   const RANGE_LBL = { "1D": "Today", "1W": "Past week", "2W": "Past 2 weeks", "1M": "Past month", ALL: "Since you started" };
   const PILLS = ["% change", "points", "due", "listed"];
@@ -17,10 +18,10 @@ window.TEUStocks = (() => {
     pct: ["% change", (a, b) => dayChange(b)[1] - dayChange(a)[1]],
     name: ["Name", (a, b) => CT[a].name.localeCompare(CT[b].name)],
   };
-  const ui = { range: "1W", pill: 0, sort: "manual" };
+  const ui = { range: "1D", pill: 0, sort: "manual" };
   try { const u = JSON.parse(localStorage.getItem(UIK)) || {}; if (RANGES.some(r => r[0] === u.range)) ui.range = u.range; if (u.pill >= 0 && u.pill < 4) ui.pill = u.pill | 0; if (SORTS[u.sort]) ui.sort = u.sort; } catch {}
   const saveUi = () => { try { localStorage.setItem(UIK, JSON.stringify(ui)); } catch {} };
-  let host = null, pane = "detail", drawnFor = null, q = "", openTerm = null, focusRow = null, cache = new Map();
+  let host = null, pane = "list", drawnFor = null, q = "", openTerm = null, focusRow = null, cache = new Map();
 
   // ---------- Model ----------
   const sectors = () => COURSE.filter(t => t.unit === "3").map(t => t.n);
@@ -96,18 +97,20 @@ window.TEUStocks = (() => {
     { id: "run3", name: "Three-day run", how: "Grade Unit 3 cards three days in a row.", p: g => [g.run.best, 3] },
     { id: "sector", name: "Full sector", how: "List every term in one subtopic.", p: g => g.sector },
     { id: "blue", name: "Blue chip", how: "Take one term all the way to 100.00.", p: g => [g.blue, 1] },
-    { id: "calls10", name: "Sharp caller", how: "Make 10 right calls in a row in Flashcards.", p: g => [g.calls.best, 10] },
+    { id: "calib", name: "Calibrated", how: "Make 20 calls in Flashcards and get at least 80% of them right.", p: g => [g.calls.total >= 20 ? 20 * Math.min(1, g.calls.right / g.calls.total / .8) : Math.min(g.calls.total, 19), 20],
+      txt: g => g.calls.total ? `${Math.round(g.calls.right / g.calls.total * 100)}% of ${g.calls.total} call${g.calls.total === 1 ? "" : "s"}` : "No calls yet" },
     { id: "comeback", name: "Comeback", how: "Bring a term you forgot back above 60.00.", p: g => [g.comeback, 1] },
     { id: "run7", name: "Week-long run", how: "Grade Unit 3 cards seven days in a row.", p: g => [g.run.best, 7] },
     { id: "target", name: "On target", how: "Lift the Unit 3 index to 70.00.", p: g => [g.ix, TARGET], price: true },
     { id: "blue10", name: "Ten blue chips", how: "Hold 10 terms at 100.00 at the same time.", p: g => [g.blue, 10] },
     { id: "full", name: "Full exchange", how: "List all 82 Unit 3 terms.", p: g => [g.listed, g.total] },
   ];
-  // Records are kept once earned. Returns the ones earned just now.
+  // Records are kept once earned. Returns the ones earned just now. A silent check (on load) marks records
+  // already met by older or imported progress without a date, since we can't know when they were earned.
   function check(silent) {
     P.rec = P.rec || {};
     const g = game(), fresh = [];
-    for (const r of RECORDS) { const [have, need] = r.p(g); if (have >= need && !P.rec[r.id]) { P.rec[r.id] = now(); fresh.push(r); } }
+    for (const r of RECORDS) { const [have, need] = r.p(g); if (have >= need && !P.rec[r.id]) { P.rec[r.id] = silent ? 1 : now(); fresh.push(r); } }
     if (fresh.length) persist();
     if (!silent) fresh.slice(0, 2).forEach((r, i) => setTimeout(() => toast("Record", r.name, r.how), i * 500));
     return fresh;
@@ -116,11 +119,11 @@ window.TEUStocks = (() => {
   // ---------- Small pieces ----------
   const pill = (v, c, label, attrs = "") => `<span class="sx-pill ${c}" ${attrs}${label ? ` aria-label="${esc(label)}"` : ""}>${v}</span>`;
   function rowPill(n) {
-    if (!listedN(n)) return pill("IPO", "ipo", "Not listed yet", 'data-sx="pill" role="button"');
+    if (!listedN(n)) return pill("IPO", "ipo", "", 'data-sx="pill" aria-hidden="true"');
     const [d, p] = dayChange(n), m = PILLS[ui.pill];
     const txt = m === "% change" ? `${sgn(p)}${Math.abs(p).toFixed(2)}%` : m === "points" ? signed(d) : m === "due" ? `${dueN(n)} due` : `${listedN(n)}/${defsOf(n).length}`;
     const c = m === "due" ? (dueN(n) ? "down" : "flat") : m === "listed" ? "flat" : cls(d);
-    return pill(txt, c, `${m}: ${txt}. Click to show ${PILLS[(ui.pill + 1) % 4]}`, 'data-sx="pill" role="button"');
+    return pill(txt, c, "", 'data-sx="pill" aria-hidden="true"');
   }
   function sparkline(n) {
     const s = series(n, "1D");
@@ -136,15 +139,18 @@ window.TEUStocks = (() => {
   const ICON = {
     sort: `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M6 10h8M8 14h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
     find: `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    back: `<svg class="sx-chev" viewBox="0 0 10 16" aria-hidden="true"><path d="M8 2 2 8l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    to: `<svg class="sx-to" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h13M10 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     check: `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     info: `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
   };
 
   // ---------- Watchlist ----------
   function rowHTML(n) {
-    const cur = curN() === n;
-    return `<button class="sx-row${n === "u3" ? " ix" : ""}" data-ctopic="${n}" data-sx="row" aria-current="${cur}" aria-label="${tkOf(n)}, ${esc(n === "u3" ? "Unit 3 index" : n + " " + CT[n].name)}, price ${fmt(ixAt(n, now()))}">
-      <div><div class="tk">${tkOf(n)}</div><div class="nm">${n === "u3" ? "Unit 3 index" : n + " · " + esc(CT[n].name)}</div></div>${sparkline(n)}
+    const cur = curN() === n, [d, p] = dayChange(n);
+    const said = listedN(n) ? `today ${sgn(d) === "−" ? "down" : sgn(d) ? "up" : "flat"} ${Math.abs(p).toFixed(2)}%, ${dueN(n)} due` : "not listed yet";
+    return `<button class="sx-row${n === "u3" ? " ix" : ""}" data-ctopic="${n}" data-sx="row" aria-current="${cur}" aria-label="${tkOf(n)}, ${esc(n === "u3" ? "Unit 3 index" : n + " " + CT[n].name)}, ${fmt(ixAt(n, now()))}, ${said}">
+      <div><div class="tk">${tkOf(n)}</div><div class="nm">${n === "u3" ? "Unit 3 index" : n + " · " + SHORT[n]}</div></div>${sparkline(n)}
       <div class="rt"><div class="px">${fmt(ixAt(n, now()))}</div>${rowPill(n)}</div></button>`;
   }
   function listHTML() {
@@ -152,7 +158,7 @@ window.TEUStocks = (() => {
     if (s.length > 1) {
       const re = new RegExp("(" + s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig"), mk = x => esc(x).replace(re, "<mark>$1</mark>");
       const hits = defsOf("u3").filter(d => (d.t + " " + d.d + " " + d.tk).toLowerCase().includes(s));
-      return `<div class="sx-results"><h3>${hits.length} term${hits.length === 1 ? "" : "s"}</h3>${hits.slice(0, 40).map(d => `<button class="sx-res" data-ctopic="${d.n}" data-sx="res" data-id="${esc(d.id)}"><b>${esc(d.tk)} · ${mk(d.t)}</b><span>${d.n} ${tkOf(d.n)} · ${mk(d.d.length > 90 ? d.d.slice(0, 90) + "…" : d.d)}</span></button>`).join("") || `<p class="sx-none">Nothing in Unit 3 matches “${esc(q)}”.</p>`}</div>`;
+      return `<div class="sx-results"><h3>${hits.length} term${hits.length === 1 ? "" : "s"}</h3>${hits.slice(0, 40).map(d => `<button class="sx-res" data-ctopic="${d.n}" data-sx="res" data-id="${esc(d.id)}"><b>${esc(d.tk)} · ${mk(d.t)}</b><span>${d.n} ${SHORT[d.n]} · ${mk(d.d.length > 90 ? d.d.slice(0, 90) + "…" : d.d)}</span></button>`).join("") || `<p class="sx-none">Nothing in Unit 3 matches “${esc(q)}”.</p>`}</div>`;
     }
     return rowHTML("u3") + sectors().sort(SORTS[ui.sort][1]).map(rowHTML).join("");
   }
@@ -176,7 +182,7 @@ window.TEUStocks = (() => {
     if (n === "u3") {
       const r = runs(), c = calls(), ix = ixAt("u3", now());
       return base.concat([cell("Trading run", r.cur ? `${r.cur} day${r.cur === 1 ? "" : "s"}` : "none"), cell("Best run", r.best ? `${r.best} day${r.best === 1 ? "" : "s"}` : "–"),
-        cell("Calls right", c.total ? `${c.right}/${c.total}` : "–"), cell("To target", ix >= TARGET ? "reached" : "+" + fmt(TARGET - ix))]).join("");
+        cell("Calibration", c.total ? `${Math.round(c.right / c.total * 100)}% of ${c.total}` : "–"), cell("To target", ix >= TARGET ? "reached" : "+" + fmt(TARGET - ix))]).join("");
     }
     const next = Math.min(...defs.map(d => prog(d.id)).filter(c => c && c.due > now()).map(c => c.due), Infinity);
     const weakest = defs.filter(d => prog(d.id)).sort((a, b) => priceOf(a.id) - priceOf(b.id))[0];
@@ -189,16 +195,17 @@ window.TEUStocks = (() => {
       <div><span class="sym">${esc(d.tk)}</span><span class="tn">${esc(d.t)}</span>${HLtag(d.hl && !CT[d.n].hl)}${due ? `<span class="sx-due">overdue</span>` : ""}<div class="def">${esc(d.d)}</div></div>
       <div class="px">${p == null ? "–" : fmt(p)}</div><div class="rt">${p == null ? pill("IPO", "ipo", "Not listed yet") : pill(signed(c), cls(c), "Today " + signed(c))}</div></button>`;
   }
+  // Printed in full: traps and evaluation are reading content, not teasers
   function storyHTML(n, kind, raw) {
     let txt = raw, hl = false;
     if (/^HL:\s*/.test(txt)) { hl = true; txt = txt.replace(/^HL:\s*/, ""); }
     const src = { idea: "Key Idea", trap: "Exam Trap", eval: "Evaluation" }[kind];
     let body = esc(txt.charAt(0).toUpperCase() + txt.slice(1));
-    if (kind === "trap") { const m = txt.match(/^(.{8,160}?):\s(.+)$/); if (m) body = `<span class="wrong">${esc(m[1])}</span>${esc(m[2].charAt(0).toUpperCase() + m[2].slice(1))}`; }
-    return `<button class="sx-story" data-sx="story" aria-expanded="false"><div class="src ${kind}">${src}${HLtag(hl)}</div><div class="txt">${body}</div><div class="meta">${n} · ${tkOf(n)}</div></button>`;
+    if (kind === "trap") { const m = txt.match(/^(.{8,160}?):\s(.+)$/); if (m) body = `<del class="wrong"><span class="sr-only">Wrong: </span>${esc(m[1])}</del><span class="sr-only">Right: </span>${esc(m[2].charAt(0).toUpperCase() + m[2].slice(1))}`; }
+    return `<article class="sx-story"><div class="src ${kind}">${src}${HLtag(hl)}</div><p class="txt">${body}</p></article>`;
   }
   function moverRow(d, v) {
-    return `<button class="sx-term mover" data-ctopic="${d.n}" data-sx="res" data-id="${esc(d.id)}"><div><span class="sym">${esc(d.tk)}</span><span class="tn">${esc(d.t)}</span><div class="def one">${d.n} ${tkOf(d.n)}</div></div><div class="px">${fmt(priceOf(d.id))}</div><div class="rt">${pill(signed(v), cls(v))}</div></button>`;
+    return `<button class="sx-term mover" data-ctopic="${d.n}" data-sx="res" data-id="${esc(d.id)}"><div><span class="sym">${esc(d.tk)}</span><span class="tn">${esc(d.t)}</span><div class="def one">${d.n} ${SHORT[d.n]}</div></div><div class="px">${fmt(priceOf(d.id))}</div><div class="rt">${pill(signed(v), cls(v))}</div></button>`;
   }
   function indexExtras() {
     const g = game(), ix = g.ix, days = daysToExam(), defs = defsOf("u3");
@@ -210,28 +217,29 @@ window.TEUStocks = (() => {
       <p>${ix >= TARGET ? "You're at the target. Keep drilling what's due so overdue terms don't drag it back down."
         : `To get there by ${new Date(EXAM).toLocaleDateString([], { day: "numeric", month: "long" })}, the index needs about +${fmt(perDay)} a day: roughly ${recalls} good recall${recalls === 1 ? "" : "s"} a day, plus whatever falls due.`}</p></section>`;
     const r = g.run;
-    const runNote = r.cur && !r.today ? `<p class="sx-runnote">Grade a Unit 3 card today to keep your ${r.cur}-day run going.</p>` : "";
-    const moves = defs.filter(d => prog(d.id)).map(d => [d, termDay(d.id)]).filter(x => Math.abs(x[1]) > .004);
-    const gain = moves.filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5), lose = moves.filter(x => x[1] < 0).sort((a, b) => a[1] - b[1]).slice(0, 5);
-    const movers = `<h2>Movers <small>today</small></h2>${gain.length || lose.length ? `<div class="sx-movers"><div><h3>Top gainers</h3>${gain.map(x => moverRow(...x)).join("") || `<p class="sx-none">Nothing up yet today.</p>`}</div>
-      <div><h3>Top losers</h3>${lose.map(x => moverRow(...x)).join("") || `<p class="sx-none">Nothing down today.</p>`}</div></div>` : `<p class="sx-none">No trades in the last 24 hours. Grade some cards and the biggest moves show up here.</p>`}`;
+    const runNote = r.cur >= 2 && !r.today ? `<p class="sx-runnote">Your run is at ${r.cur} days. One Unit 3 card today keeps it going.</p>` : "";
+    const gain = defs.filter(d => prog(d.id)).map(d => [d, termDay(d.id)]).filter(x => x[1] > .004).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const movers = `<h2>Top gainers <small>today</small></h2>${gain.length ? gain.map(x => moverRow(...x)).join("") : `<p class="sx-none">Nothing up in the last 24 hours. Every term you recall shows up here.</p>`}`;
     const falling = defs.filter(d => prog(d.id) && prog(d.id).due < now() - HOUR).sort((a, b) => prog(a.id).due - prog(b.id).due);
     const fall = falling.length ? `<h2>Falling <small>${falling.length} overdue</small></h2><p class="sx-lede">An overdue term loses 5% a day until it's down to 60% of its price. Recall it to stop the slide.</p>
       ${falling.slice(0, 6).map(d => termRow(d)).join("")}${falling.length > 6 ? `<p class="sx-none">and ${falling.length - 6} more</p>` : ""}<div class="sx-actrow"><button class="sx-drill" data-view="cards">Drill what's due <kbd>D</kbd></button></div>` : "";
-    const recs = `<h2>Records <small>${Object.keys(P.rec || {}).filter(k => RECORDS.some(r => r.id === k)).length} of ${RECORDS.length}</small></h2><div class="sx-recs">${RECORDS.map(rec => {
+    const recRow = rec => {
       const [have, need] = rec.p(g), at = P.rec?.[rec.id], share = Math.min(1, have / need);
-      const prog2 = at ? `<span class="got">Earned ${dayLbl(at)}</span>` : `<span>${rec.price ? `${fmt(have)} of ${fmt(need)}` : `${Math.min(have, need)} of ${need}`}</span><span class="bar"><i style="--p:${share.toFixed(3)}"></i></span>`;
+      const prog2 = at ? `<span class="got">${at > 1 ? "Earned " + dayLbl(at) : "Earned"}</span>` : `<span>${rec.txt ? rec.txt(g) : rec.price ? `${fmt(have)} of ${fmt(need)}` : `${Math.min(have, need)} of ${need}`}</span><span class="bar"><i style="--p:${share.toFixed(3)}"></i></span>`;
       return `<div class="sx-rec${at ? " got" : ""}"><div><b>${rec.name}</b><span>${rec.how}</span></div><div class="rt">${prog2}</div></div>`;
-    }).join("")}</div>`;
-    return target + runNote + movers + fall + recs;
+    };
+    const open = RECORDS.filter(rec => !P.rec?.[rec.id]), next = open.slice(0, 3), rest = RECORDS.filter(rec => !next.includes(rec));
+    const recs = `<h2>Records <small>${RECORDS.length - open.length} of ${RECORDS.length} earned</small></h2><div class="sx-recs">${next.map(recRow).join("") || `<p class="sx-none">Every record earned.</p>`}</div>
+      ${rest.length ? `<details class="sx-more"><summary>Show all ${RECORDS.length} records</summary><div class="sx-recs">${rest.map(recRow).join("")}</div></details>` : ""}`;
+    return target + runNote + fall + movers + recs;
   }
   function detailHTML(n) {
     const isIx = n === "u3", t = CT[n], defs = defsOf(n), L = listedN(n), due = dueN(n);
-    const head = `<button class="sx-back" data-sx="back">‹ Stocks</button>
+    const head = `<button class="sx-back" data-sx="back">${ICON.back}Stocks</button>
       <div class="sx-headrow"><div class="sx-head"><span class="tk">${tkOf(n)}</span><span class="nm">${isIx ? "Unit 3 index · all 82 terms" : n + " " + esc(t.name)}</span>${HLtag(!isIx && t.hl)}</div>
       <div class="sx-actions"><button class="sx-drill" data-view="cards">Drill${due ? ` · ${due} due` : ""} <kbd>D</kbd></button>
       <div class="sx-infow"><button class="sx-icon" data-sx="info" aria-expanded="false" aria-controls="sxInfo" aria-label="What the price means">${ICON.info}</button>
-      <div class="sx-pop" id="sxInfo" hidden><b>The price is how well you know ${isIx ? "Unit 3" : n}.</b> It's the average of ${defs.length} terms. A term lists at 10.00 the first time you grade it in Flashcards, climbs with each correct recall to 100.00, and drifts down while it's overdue. Terms you haven't graded count at 10.00.<br><br><b>Calls.</b> Before you flip a Unit 3 card, buy if you're sure you know it or sell if you're not. A right call is honest revision: it shows you know what you know.</div></div></div></div>
+      <div class="sx-pop" id="sxInfo" hidden><b>The price is how well you know ${isIx ? "Unit 3" : n}.</b> It's the average of ${defs.length} terms. A term lists at 10.00 the first time you grade it in Flashcards, climbs with each correct recall to 100.00, and drifts down while it's overdue. Terms you haven't graded count at 10.00.<br><br><b>Calls.</b> Before you flip a Unit 3 card, buy if you're sure you know it or sell if you're not. Your call stays hidden until you've graded, so grade against the wording, not your guess. Calibration is how often your calls matched what you actually knew.</div></div></div></div>
       <div class="sx-quote" id="sxQuote" aria-live="polite"></div>${statusLine(n)}`;
     const chart = L ? `<div class="sx-ranges" role="group" aria-label="Chart range">${RANGES.map(([r], i) => `<button data-sx="range" data-v="${r}" aria-pressed="${r === ui.range}" title="Key ${i + 1}">${r}</button>`).join("")}</div>
       <div class="sx-chart" id="sxChart" tabindex="0" role="img" aria-label=""></div>
@@ -248,7 +256,7 @@ window.TEUStocks = (() => {
       const stories = [...t.points.map(p => ["idea", p]), ...t.traps.map(p => ["trap", p]), ...t.eval.map(p => ["eval", p])];
       body += `<h2>Top Stories</h2><div class="sx-news">${stories.map(([k, x]) => storyHTML(n, k, x)).join("")}</div>`;
     }
-    body += `<p class="sx-keys"><kbd>↑</kbd> <kbd>↓</kbd> move through the watchlist · <kbd>1</kbd>–<kbd>5</kbd> chart range · <kbd>D</kbd> drill · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</p>`;
+    body += `<p class="sx-keys"><kbd>J</kbd> <kbd>K</kbd> (or <kbd>↑</kbd> <kbd>↓</kbd> in the list) move through the watchlist · <kbd>1</kbd>–<kbd>5</kbd> chart range · <kbd>D</kbd> drill · <kbd>/</kbd> search · <kbd>Esc</kbd> clear</p>`;
     return head + chart + body;
   }
 
@@ -270,7 +278,7 @@ window.TEUStocks = (() => {
     for (let i = 0; i < n - 1; i++) d += ` C${f(Q[i][0] + dx[i] / 3)} ${f(Q[i][1] + t[i] * dx[i] / 3)} ${f(Q[i + 1][0] - dx[i] / 3)} ${f(Q[i + 1][1] - t[i + 1] * dx[i] / 3)} ${f(Q[i + 1][0])} ${f(Q[i + 1][1])}`;
     return d;
   }
-  const dt = tt => new Date(tt).toLocaleString([], ui.range === "1D" ? { hour: "numeric", minute: "2-digit" } : { day: "numeric", month: "short", hour: ui.range === "1W" ? "numeric" : undefined });
+  const dt = tt => new Date(tt).toLocaleString([], ui.range === "1D" ? { hour: "numeric", minute: "2-digit" } : ui.range === "1W" ? { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" } : { day: "numeric", month: "short" });
   function quote(n, pt, from) {
     const el = document.getElementById("sxQuote"); if (!el) return;
     const s = series(n, ui.range), ath = listedN(n) ? athOf(n) : 0;
@@ -341,9 +349,9 @@ window.TEUStocks = (() => {
     const narrow = matchMedia("(max-width: 820px)").matches;
     el.innerHTML = `<div class="stx" data-pane="${narrow ? pane : "detail"}">
       <aside class="sx-side" aria-label="Unit 3 watchlist">
-        <button class="sx-up" data-ctopic="all">‹ All units</button>
+        <button class="sx-up" data-ctopic="all">${ICON.back}All units</button>
         <div class="sx-top"><h1>Stocks</h1><div class="sx-sortw"><button class="sx-icon" data-sx="sortbtn" aria-haspopup="menu" aria-expanded="false" aria-controls="sxMenu" aria-label="Sort subtopics">${ICON.sort}</button><div class="sx-menu" id="sxMenu" role="menu" hidden>${sortMenu()}</div></div></div>
-        <div class="sx-date">${new Date().toLocaleDateString([], { day: "numeric", month: "long" })}</div>
+        <div class="sx-date"><span>${new Date().toLocaleDateString([], { day: "numeric", month: "long" })}</span><button class="sx-show" data-sx="pill" aria-label="Pills show ${PILLS[ui.pill]}. Show ${PILLS[(ui.pill + 1) % 4]} instead">Showing ${PILLS[ui.pill]}</button></div>
         <label class="sx-search">${ICON.find}<input id="sxQ" type="search" placeholder="Search 82 terms" aria-label="Search Unit 3 terms and definitions" value="${esc(q)}"><kbd>/</kbd></label>
         <div id="sxList">${listHTML()}</div>
       </aside>
@@ -370,7 +378,11 @@ window.TEUStocks = (() => {
       if (!ev.target.closest(".sx-menu, .sx-pop, [data-sx=sortbtn], [data-sx=info]")) closePops();
       if (!b || !el.contains(b)) return;
       const a = b.dataset.sx;
-      if (a === "pill") { ev.stopPropagation(); ui.pill = (ui.pill + 1) % 4; saveUi(); el.querySelector("#sxList").innerHTML = listHTML(); return; }
+      if (a === "pill") {
+        ev.stopPropagation(); ev.preventDefault(); ui.pill = (ui.pill + 1) % 4; saveUi(); el.querySelector("#sxList").innerHTML = listHTML();
+        const sb = el.querySelector(".sx-show"); sb.textContent = "Showing " + PILLS[ui.pill]; sb.setAttribute("aria-label", `Pills show ${PILLS[ui.pill]}. Show ${PILLS[(ui.pill + 1) % 4]} instead`);
+        say("Pills show " + PILLS[ui.pill]); return;
+      }
       if (a === "row") { pane = "detail"; return; }                    // app.js handles data-ctopic
       if (a === "res") { pane = "detail"; openTerm = b.dataset.id; q = ""; return; }
       ev.stopPropagation();
@@ -380,12 +392,17 @@ window.TEUStocks = (() => {
         if (open && a === "sortbtn") p.querySelector('[aria-checked="true"]')?.focus();
       } else if (a === "sort") { ui.sort = b.dataset.v; saveUi(); closePops(); rerender(); el.querySelector('[data-sx="sortbtn"]')?.focus(); }
       else if (a === "range") setRange(b.dataset.v);
-      else if (a === "term" || a === "story") b.setAttribute("aria-expanded", b.getAttribute("aria-expanded") !== "true");
+      else if (a === "term") b.setAttribute("aria-expanded", b.getAttribute("aria-expanded") !== "true");
       else if (a === "back") { pane = "list"; el.querySelector(".stx").dataset.pane = "list"; window.scrollTo({ top: 0 }); }
     });
     el.addEventListener("input", ev => { if (ev.target.id === "sxQ") { q = ev.target.value; el.querySelector("#sxList").innerHTML = listHTML(); } });
     el.addEventListener("keydown", ev => {
       if (ev.target.id === "sxQ" && ev.key === "Escape") { q = ""; ev.target.value = ""; el.querySelector("#sxList").innerHTML = listHTML(); ev.target.blur(); }
+      if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && ev.target.closest(".sx-menu")) {
+        ev.preventDefault(); ev.stopPropagation();
+        const items = [...el.querySelectorAll(".sx-menu button")], i = items.indexOf(ev.target);
+        items[(i + (ev.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus();
+      }
       if (ev.key === "Escape" && ev.target.closest(".sx-menu, .sx-pop, .sx-sortw, .sx-infow")) { const btn = ev.target.closest(".sx-sortw, .sx-infow")?.querySelector(".sx-icon"); closePops(); btn?.focus(); }
     });
   }
@@ -402,6 +419,8 @@ window.TEUStocks = (() => {
     if (k === "Escape") { closePops(); return true; }
     if (k === "ArrowDown" || k === "ArrowUp" || k === "j" || k === "k") {
       if (ev.target.closest?.(".sx-menu")) return false;
+      const loose = ev.target === document || ev.target === document.body || ev.target === document.documentElement || ev.target.closest?.(".sx-side");
+      if ((k === "ArrowDown" || k === "ArrowUp") && !loose) return false;
       ev.preventDefault();
       const order = [...host.querySelectorAll(".sx-row")].map(r => r.dataset.ctopic);
       if (!order.length) return true;
@@ -417,41 +436,56 @@ window.TEUStocks = (() => {
 
   // ---------- Flashcards: calls, trade confirmation, session, closing bell ----------
   const scopeN = () => curN();
-  function cardQuote(x) {
+  // The symbol is hidden while you're naming the term from its definition: it would give the answer away
+  function cardQuote(x, hideSymbol) {
     const p = priceOf(x.id), c = termDay(x.id);
-    return `<div class="sx-cq"><span class="tk">${esc(x.tk)}</span>${p == null ? `<span class="ipo">Not listed yet · lists at 10.00</span>` : `<span class="px">${fmt(p)}</span>${pill(signed(c), cls(c), "Today " + signed(c))}`}<span class="sxn">${x.n} ${tkOf(x.n)}</span></div>`;
+    return `<div class="sx-cq"><span class="tk">${hideSymbol ? `<span class="sx-hidden" aria-label="Symbol hidden until you flip">· · ·</span>` : esc(x.tk)}</span>${p == null ? `<span class="ipo">Not listed yet · lists at 10.00</span>` : `<span class="px">${fmt(p)}</span>${pill(signed(c), cls(c), "Today " + signed(c))}`}</div>`;
   }
   const callRow = () => `<div class="sx-calls"><button class="btn call buy" data-call="1">Buy · I know it <kbd>B</kbd></button><button class="btn call sell" data-call="-1">Sell · Not sure <kbd>S</kbd></button><button class="btn" data-cflip="1">Just flip <kbd>Space</kbd></button></div>
-    <p class="note">Make a call before you look. It costs nothing, and right calls build your caller record.</p>`;
-  const callTag = call => call ? `<p class="sx-yourcall ${call > 0 ? "buy" : "sell"}">You ${call > 0 ? "bought: you said you know it" : "sold: you weren't sure"}. Grade honestly against the wording.</p>` : "";
-  const session = () => ({ t0: now() - 1, n: 0, right: 0, calls: 0, first: {}, recs: [], last: null });
+    <p class="note">Make a call before you look. It stays hidden until you've graded, so grade against the wording, not your guess.</p>`;
+  // After the flip the call is not repeated: seeing "you said you know it" next to the grade buttons tilts the grade
+  const callTag = call => call ? `<p class="sx-yourcall">Call made. You'll see it after you grade.</p>` : "";
+  const session = () => ({ t0: now() - 1, n: 0, right: 0, calls: 0, first: {}, missed: [], recs: [], last: null });
   function afterGrade(D, id) {
     const s = D.sess, c = prog(id), e = evOf(id).at(-1);
     s.n++;
     if (!(id in s.first)) s.first[id] = c.pp ?? IPO;
     if (e[4]) { s.calls++; if (callRight(e)) s.right++; }
-    s.last = { id, before: c.pp ?? IPO, after: priceOf(id), call: e[4], g: e[3] };
+    s.missed = s.missed.filter(x => x !== id);
+    if (e[3] <= 1) s.missed.push(id);
+    s.last = { id, before: c.pp ?? IPO, after: priceOf(id), call: e[4], g: e[3], due: c.due };
     const fresh = check(false);
     s.recs.push(...fresh.map(r => r.name));
   }
   function tradeBar(D) {
     const s = D.sess; if (!s || !s.last) return "";
     const L = s.last, d = CBY[L.id], ch = L.after - L.before, n = scopeN(), mv = ixAt(n, now()) - ixAt(n, s.t0);
-    const verdict = L.call ? (callRight({ 3: L.g, 4: L.call }) ? `<span class="v up">Call right</span>` : `<span class="v down">Call wrong</span>`) : "";
-    return `<div class="sx-tbar" aria-live="polite"><div class="last"><span class="lbl">Last trade</span><b>${esc(d.tk)}</b><span class="px${calm() ? "" : " tick"}">${fmt(L.before)} → ${fmt(L.after)}</span>${pill(signed(ch), cls(ch))}${verdict}</div>
-      <div class="sess"><span>This session</span><b class="${cls(mv)}">${tkOf(n)} ${signed(mv)}</b><span>${s.n} traded</span>${s.calls ? `<span>calls ${s.right}/${s.calls}</span>` : ""}${runs().cur ? `<span>${runs().cur}-day run</span>` : ""}</div></div>`;
+    const back = `back ${when(L.due) === "now" ? "now" : "in " + previewWhen(L.due)}`;
+    let verdict = "";
+    if (L.call) {
+      const right = callRight({ 3: L.g, 4: L.call }), word = L.call > 0 ? "bought" : "sold";
+      verdict = right ? `<span class="v">You ${word}. Call right</span>`
+        : `<span class="v">You ${word}. Call wrong: ${L.call > 0 ? `you knew less than you thought, so it comes ${back}` : "you knew more than you thought"}</span>`;
+    }
+    // A forgotten term still rises from 10.00 to 12.00 when it lists; don't colour that like a win
+    const chc = L.g === 0 ? "flat" : cls(ch);
+    return `<div class="sx-tbar" aria-live="polite"><div class="last"><span class="lbl">Last trade</span><b>${esc(d.tk)}</b><span class="px${calm() ? "" : " tick"}">${fmt(L.before)}${ICON.to}<span class="sr-only">to</span>${fmt(L.after)}</span>${pill(signed(ch), chc)}${verdict}<button class="sx-undo" data-undo="1">Undo <kbd>U</kbd></button></div>
+      <div class="sess"><span>This session</span><b class="${cls(mv)}">${tkOf(n)} ${signed(mv)}</b><span>${s.n} traded</span>${s.calls ? `<span>calls ${s.right} of ${s.calls} right</span>` : ""}${runs().cur ? `<span>${runs().cur}-day run</span>` : ""}</div></div>`;
   }
+  // Closing bell: the session's result, then the one useful next step (the terms you missed), not a chart
   function recap(D) {
     const s = D.sess; if (!s || !s.n) return "";
     const n = scopeN(), a = ixAt(n, s.t0), b = ixAt(n, now()), mv = b - a;
-    const moves = Object.entries(s.first).map(([id, p0]) => [CBY[id], priceOf(id) - p0]).sort((x, y) => y[1] - x[1]);
-    const best = moves[0], worst = moves[moves.length - 1], r = runs();
-    return `<section class="sx-close" aria-label="Session summary"><p class="lbl">Market closed</p>
+    const best = Object.entries(s.first).filter(([id]) => !s.missed.includes(id)).map(([id, p0]) => [CBY[id], priceOf(id) - p0]).sort((x, y) => y[1] - x[1])[0], r = runs();
+    const missed = s.missed.map(id => CBY[id]).filter(Boolean);
+    return `<section class="sx-close" aria-label="Session summary"><p class="lbl">Closing bell</p>
       <div class="big"><span class="tk">${tkOf(n)}</span><span class="px">${fmt(b)}</span><span class="ch ${cls(mv)}">${signed(mv)} (${sgn(mv)}${Math.abs(pct(b, a)).toFixed(2)}%)</span></div>
-      <p>You traded ${s.n} term${s.n === 1 ? "" : "s"} this session${s.calls ? ` and made ${s.right} right call${s.right === 1 ? "" : "s"} out of ${s.calls}` : ""}.${r.cur ? ` Trading run: ${r.cur} day${r.cur === 1 ? "" : "s"}.` : ""}</p>
-      <div class="sx-stats">${best && best[1] > .004 ? `<div><span>Top gainer</span><b>${esc(best[0].tk)} <em class="up">${signed(best[1])}</em></b></div>` : ""}${worst && worst[1] < -.004 ? `<div><span>Biggest drop</span><b>${esc(worst[0].tk)} <em class="down">${signed(worst[1])}</em></b></div>` : ""}${s.recs.length ? `<div><span>New records</span><b>${s.recs.map(esc).join(", ")}</b></div>` : ""}</div>
-      <div class="sx-actrow"><button class="sx-drill" data-view="notes">Open the ${tkOf(n)} chart</button></div></section>`;
+      <p>You traded ${s.n} term${s.n === 1 ? "" : "s"} this session${s.calls ? ` and called ${s.right} of ${s.calls} right` : ""}.${r.cur ? ` Trading run: ${r.cur} day${r.cur === 1 ? "" : "s"}.` : ""}${best && best[1] > .004 ? ` Top gainer: ${esc(best[0].tk)} ${signed(best[1])}.` : ""}${s.recs.length ? ` New record${s.recs.length === 1 ? "" : "s"}: ${s.recs.map(esc).join(", ")}.` : ""}</p>
+      ${missed.length ? `<h3>To drill again</h3><ul class="sx-missed">${missed.map(d => `<li><b>${esc(d.tk)}</b> ${esc(d.t)}</li>`).join("")}</ul>
+        <div class="sx-actrow"><button class="sx-drill" data-redrill="1">Drill these ${missed.length} again <kbd>Enter</kbd></button><button class="sx-link" data-view="notes">Open the ${tkOf(n)} chart</button></div>`
+      : `<p class="sx-none">Nothing missed. Tick “Include cards that aren't due” to keep going, or open the chart.</p><div class="sx-actrow"><button class="sx-drill" data-view="notes">Open the ${tkOf(n)} chart</button></div>`}</section>`;
   }
+  const previewWhen = due => { const m = (due - now()) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + " min" : m < 1440 ? Math.round(m / 60) + " hours" : Math.round(m / 1440) + " days"; };
 
   // ---------- Toasts ----------
   function toast(kind, title, body) {
