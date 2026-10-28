@@ -389,24 +389,46 @@ function renderRail() {
 // ---------- Bay plan (bank) ----------
 const inTopic = e => S.topic === "all" || e.topics.includes(S.topic);
 const pool = () => DATA.filter(inTopic);
+let ship = null;
+const shipGroups = () => TOPICS.map(t => ({ n: t.n, name: t.short, items: DATA.filter(e => e.topic === t.n).sort((a, b) => a.slot - b.slot)
+  .map(e => ({ id: e.id, name: e.bay, tier: e.tier, code: e.code, title: e.title, tag: e.mem.tag, topics: e.topics })) }));
 function renderBay() {
   const el = $("#bay");
   if (S.sec !== "bank") { el.hidden = true; return; }
   el.hidden = false;
-  const compact = S.view !== "library";
+  if (!el.dataset.built) {
+    el.innerHTML = `<div class="bay-head" id="bayHead"></div><div class="ship" id="shipHost"></div><div id="bayCompact"></div>
+      <div class="legend" id="shipLegend"><span><i></i>Weathered: not drilled yet</span><span><i class="l"></i>Loaded: learning</span><span><i class="m"></i>Sealed: mastered</span><span><i class="l d"></i>Due for review</span><span><i class="m sw" style="background:var(--rust)"></i>S</span><span><i class="m sw" style="background:var(--cobalt);border-color:var(--cobalt)"></i>A</span><span><i class="m sw" style="background:var(--moss);border-color:var(--moss)"></i>B</span><span><i class="m sw" style="background:var(--stone);border-color:var(--stone)"></i>C tier</span></div>`;
+    el.dataset.built = "1";
+  }
+  const compact = S.view !== "library" || !window.TEUShip;
   el.toggleAttribute("data-compact", compact);
   el.toggleAttribute("data-filter", S.topic !== "all");
+  const loaded = DATA.filter(e => prog(e.id)).length, due = DATA.filter(e => prog(e.id) && isDue(e.id)).length;
+  $("#bayHead").innerHTML = `<h2>Bay plan · Unit 4 · stowed by subtopic, painted by tier</h2><p>${DATA.length} containers · ${loaded} loaded · ${due} due${S.topic !== "all" ? ` · showing bay ${S.topic}` : ""}</p>${S.topic !== "all" ? `<button class="btn" data-topic="all">All bays</button>` : ""}`;
+  $("#shipHost").hidden = compact; $("#shipLegend").hidden = compact;
+  if (!compact) {
+    $("#bayCompact").innerHTML = "";
+    if (!ship) ship = TEUShip.mount($("#shipHost"), {
+      groups: shipGroups(),
+      onOpen: id => { if (id === S.sel) return; S.sel = id; renderBay(); renderLibrary(); saveUI(); },
+      onBay: n => setBay(n === S.topic ? "all" : n),
+    });
+    const states = {};
+    for (const e of DATA) { const c = prog(e.id); states[e.id] = { drilled: !!c, mastered: stateOf(e.id) === "mastered", due: !!c && isDue(e.id) }; }
+    ship.update({ states, sel: S.sel, topic: S.topic });
+    lastMoved = null;
+    return;
+  }
+  // the thin bar plan in the drill modes, so the work stays in view
   const cols = TOPICS.map(t => DATA.filter(e => e.topic === t.n).sort((a, b) => a.slot - b.slot));
   const stack = Math.max(...cols.map(c => c.length));
-  const loaded = DATA.filter(e => prog(e.id)).length, due = DATA.filter(e => prog(e.id) && isDue(e.id)).length;
   const box = e => {
     const st = stateOf(e.id), cls = `box tier-${e.tier} ${st}${prog(e.id) && isDue(e.id) ? " due" : ""}${lastMoved === e.id && !calm() ? " drop" : ""}`;
-    return `<button class="${cls}" data-box="${esc(e.id)}" ${compact ? 'tabindex="-1"' : ""} aria-pressed="${!compact && S.sel === e.id}" title="${esc(e.code + " · " + e.title + " · tier " + e.tier + " · " + stateLabel[st])}">${esc(e.bay)}</button>`;
+    return `<button class="${cls}" data-box="${esc(e.id)}" tabindex="-1" title="${esc(e.code + " · " + e.title + " · tier " + e.tier + " · " + stateLabel[st])}">${esc(e.bay)}</button>`;
   };
-  el.innerHTML = `<div class="bay-head"><h2>Bay plan · Unit 4 · stacked by subtopic, coloured by tier</h2><p>${DATA.length} containers · ${loaded} loaded · ${due} due${S.topic !== "all" ? ` · showing bay ${S.topic}` : ""}</p>${S.topic !== "all" ? `<button class="btn" data-topic="all">All bays</button>` : ""}</div>
-    <div class="plan-scroll"><div class="plan" style="--stack:${stack}">${cols.map((c, i) => `<div class="col" ${S.topic === TOPICS[i].n ? "data-on" : ""}>${c.map(box).join("")}</div>`).join("")}</div>
-    <div class="bay-lbls">${TOPICS.map(t => `<button class="bay-lbl" data-topic="${t.n}" aria-pressed="${S.topic === t.n}">${t.n}<small>${esc(t.short)}</small></button>`).join("")}</div></div>
-    ${compact ? "" : `<div class="legend"><span><i></i>Weathered: not drilled yet</span><span><i class="l"></i>Loaded: learning</span><span><i class="m"></i>Sealed: mastered</span><span><i class="l d"></i>Due for review</span><span><i class="m sw" style="background:var(--rust)"></i>S</span><span><i class="m sw" style="background:var(--cobalt);border-color:var(--cobalt)"></i>A</span><span><i class="m sw" style="background:var(--moss);border-color:var(--moss)"></i>B</span><span><i class="m sw" style="background:var(--stone);border-color:var(--stone)"></i>C tier</span></div>`}`;
+  $("#bayCompact").innerHTML = `<div class="plan-scroll"><div class="plan" style="--stack:${stack}">${cols.map((c, i) => `<div class="col" ${S.topic === TOPICS[i].n ? "data-on" : ""}>${c.map(box).join("")}</div>`).join("")}</div>
+    <div class="bay-lbls">${TOPICS.map(t => `<button class="bay-lbl" data-topic="${t.n}" aria-pressed="${S.topic === t.n}">${t.n}<small>${esc(t.short)}</small></button>`).join("")}</div></div>`;
   lastMoved = null;
 }
 

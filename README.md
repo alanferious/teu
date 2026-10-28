@@ -10,7 +10,7 @@ Use it online at **https://alanferious.github.io/teu/**, or download this folder
 - **Evidence bank**: 42 real-world examples for Unit 4, rated on relevance, evaluation, data and recency. Each one is boiled down to a story, three key numbers and one "but".
   Modes: Library (the bay plan), Drill, Number recall, Pick the example, and Write & check (an offline checker for Paper 1 (b)-style paragraphs).
 
-On the bay plan, an empty outline is an example you haven't drilled yet. A painted container is one you're learning, and a sealed one is mastered. A yellow corner means it is due for review.
+In the Library the examples are containers on a ship at the quay. Click one and the crane lifts it out for you. A weathered container is an example you haven't drilled yet. A freshly painted one is one you're learning, and a sealed one is mastered. A yellow corner means it is due for review.
 
 Keys: <kbd>Space</kbd> flips a card, <kbd>1</kbd>–<kbd>4</kbd> grade it or pick an answer, and <kbd>Enter</kbd> moves on.
 

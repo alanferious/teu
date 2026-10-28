@@ -1,8 +1,8 @@
 // TEU offline copy. Network first, so a new version shows up as soon as you're online;
 // the cache answers when there is no connection.
-const CACHE = "teu-v1";
+const CACHE = "teu-v2";
 const CORE = [
-  "./", "index.html", "styles.css", "app.js", "data/examples.js", "data/course.js", "manifest.webmanifest",
+  "./", "index.html", "styles.css", "app.js", "ship.js", "data/examples.js", "data/course.js", "manifest.webmanifest",
   "fonts/BarlowSemiCondensed-400.woff2", "fonts/BarlowSemiCondensed-400i.woff2", "fonts/BarlowSemiCondensed-500.woff2",
   "fonts/BarlowSemiCondensed-600.woff2", "fonts/BarlowSemiCondensed-700.woff2",
   "fonts/SairaStencilOne-400.woff2", "fonts/DotGothic16-400.woff2",

@@ -490,3 +490,62 @@ body[data-world="board"] .chip[aria-pressed="true"] { background: var(--amber); 
   .ticker { overflow-x: auto; }
   .ticker .tape { animation: none; }
 }
+
+/* ---------- The ship (Library bay plan, drawn by ship.js) ---------- */
+.ship {
+  --sky1: #DADFDC; --sky2: #E0E3E0; --sky3: #E7E9E6; --cloud: #F1F2EF;
+  --far: #D5DAD7; --far2: #C9CECB; --far3: #C3C9C6; --far-hi: #DDE1DE; --far-line: #B3B9B5; --gull: #4E565D;
+  --quay: #B9BEBA; --sea1: #B6BFBD; --sea2: #ADB7B5; --sea3: #A3AEAC;
+  --rip1: #C6CECC; --rip2: #BEC7C5; --rip3: #B6C0BE; --refl: #5E6867; --refl-hi: #EEEFEC; --foam: #DCE1DF;
+  --win: #2E3E4A; --call: #1C2126; --call2: #4E565D;
+  border-top: 1px solid var(--rule-2); border-bottom: 1px solid var(--rule-2);
+}
+@media (prefers-color-scheme: dark) {
+  /* night at the quay: dark sky and water, lit windows, the cargo still in its paint */
+  .ship {
+    --sky1: #0F1A24; --sky2: #142130; --sky3: #1B2935; --cloud: #213140;
+    --far: #18232D; --far2: #1F2C37; --far3: #23313C; --far-hi: #2A3843; --far-line: #33414C; --gull: #8A949B;
+    --quay: #343C42; --sea1: #192630; --sea2: #15212A; --sea3: #111C24;
+    --rip1: #223340; --rip2: #1F2F3A; --rip3: #1C2A34; --refl: #0A1117; --refl-hi: #D9B862; --foam: #33434E;
+    --win: #E3C16F; --call: #E2E5E2; --call2: #A2AAAF;
+  }
+}
+.ship-scroll { overflow-x: auto; scrollbar-width: thin; }
+.ship-stage { position: relative; min-width: 940px; container-type: inline-size; }
+.ship-svg { display: block; width: 100%; height: auto; }
+.ship-svg * { vector-effect: non-scaling-stroke; }
+.ship-svg .o { stroke: #1C2126; stroke-width: 1; }
+.ship-svg .far { stroke: var(--far-line); stroke-width: 1; }
+.ship-svg .lbl { font: 700 10.5px var(--f-body); fill: #fff; pointer-events: none; }
+.ship-svg .call { font: 700 13px var(--f-body); fill: var(--call); }
+.ship-svg .call2 { font: 500 12px var(--f-body); fill: var(--call2); }
+.ship-svg .name { font: 700 11px var(--f-body); fill: #E4E6E3; letter-spacing: 2.5px; }
+.ship-svg .tiny { font: 600 5.5px var(--f-body); fill: #E4E6E3; }
+.ship-svg .stencil { font: 9px var(--f-code); fill: #1C2126; }
+.ship-svg .call-g { transition: opacity 160ms var(--ease-out); }
+.ship-box { cursor: pointer; transition: opacity .25s var(--ease-out); }
+.ship-box.dim { opacity: .35; }
+.ship-box .lift { transition: transform 140ms ease; }
+.ship-box .paint { transition: filter 140ms ease; }
+.ship-box .wash, .ship-box .seal { transition: opacity 260ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .ship-box:hover .lift { transform: translateY(-1.5px); }
+  .ship-box:hover .paint { filter: brightness(1.12); }
+}
+/* idle: the reflection sways, the buoy rocks, the lights breathe. Nothing that carries information moves. */
+.ship-svg .sway { animation: ship-sway 7s ease-in-out infinite alternate; }
+.ship-svg .sway2 { animation: ship-sway 9s ease-in-out infinite alternate-reverse; }
+.ship-svg .beacon { animation: ship-beacon 2.4s ease-in-out infinite; }
+@keyframes ship-sway { to { transform: translateX(3px); } }
+@keyframes ship-beacon { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.ship-lbls { position: absolute; inset: 0; pointer-events: none; }
+.ship-lbl { position: absolute; pointer-events: auto; background: none; border: 0; padding: 0 0 4px; text-align: left; color: var(--ink); display: flex; flex-direction: column; gap: 1px; }
+.ship-lbl b { font: clamp(12px, 1.1cqw, 15px) var(--f-code); }
+.ship-lbl span { font-size: clamp(9px, .95cqw, 13px); font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+.ship-lbl[aria-pressed="true"] b { box-shadow: inset 0 -3px 0 var(--ochre); }
+@media (hover: hover) and (pointer: fine) { .ship-lbl:hover span { text-decoration: underline; text-underline-offset: 3px; } }
+.ship-tip { position: fixed; pointer-events: none; background: #1C2126; color: #E4E6E3; font: 600 13.5px var(--f-body); padding: 6px 10px; display: none; z-index: 30; }
+#shipLegend { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) {
+  .ship-svg .sway, .ship-svg .sway2, .ship-svg .beacon { animation: none; }
+}
