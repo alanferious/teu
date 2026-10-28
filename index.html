@@ -33,25 +33,22 @@
         <button class="sec" data-sec="course">Course notes</button>
         <button class="sec" data-sec="bank">Evidence bank</button>
       </div>
+      <nav class="modes" aria-label="Study modes"><div role="tablist">
+        <button class="mode" role="tab" id="tab-notes" data-view="notes">Notes</button>
+        <button class="mode" role="tab" id="tab-cards" data-view="cards">Flashcards<small id="cardsBadge"></small></button>
+        <button class="mode" role="tab" id="tab-diagrams" data-view="diagrams">Diagram drill<small id="diagBadge"></small></button>
+        <button class="mode" role="tab" id="tab-quiz" data-view="quiz">Term quiz</button>
+        <button class="mode" role="tab" id="tab-library" data-view="library">Library</button>
+        <button class="mode" role="tab" id="tab-drill" data-view="drill">Drill<small id="dueBadge"></small></button>
+        <button class="mode" role="tab" id="tab-numbers" data-view="numbers">Number recall</button>
+        <button class="mode" role="tab" id="tab-match" data-view="match">Pick the example</button>
+        <button class="mode" role="tab" id="tab-write" data-view="write">Write &amp; check</button>
+      </div></nav>
       <p class="top-stats" id="stats" aria-live="polite"></p>
     </div>
   </header>
 
   <div class="ticker" id="ticker" hidden></div>
-
-  <nav class="modes" aria-label="Study modes">
-    <div class="wrap" role="tablist">
-      <button class="mode" role="tab" id="tab-notes" data-view="notes">Notes</button>
-      <button class="mode" role="tab" id="tab-cards" data-view="cards">Flashcards<small id="cardsBadge"></small></button>
-      <button class="mode" role="tab" id="tab-diagrams" data-view="diagrams">Diagram drill<small id="diagBadge"></small></button>
-      <button class="mode" role="tab" id="tab-quiz" data-view="quiz">Term quiz</button>
-      <button class="mode" role="tab" id="tab-library" data-view="library">Library</button>
-      <button class="mode" role="tab" id="tab-drill" data-view="drill">Drill<small id="dueBadge"></small></button>
-      <button class="mode" role="tab" id="tab-numbers" data-view="numbers">Number recall</button>
-      <button class="mode" role="tab" id="tab-match" data-view="match">Pick the example</button>
-      <button class="mode" role="tab" id="tab-write" data-view="write">Write &amp; check</button>
-    </div>
-  </nav>
 
   <section class="bay wrap" id="bay" aria-label="Bay plan: Unit 4 examples by subtopic" hidden></section>
 
