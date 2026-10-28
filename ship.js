@@ -9,7 +9,8 @@
   const W = 1400, H = 556;
   const WL = 400, QUAY = 374, DECK = 361, BASE = 348;
   const STERN = 34, FCLE = 1272, STEM = 1368, X0 = 207, GAP = 9, TG = 1, MAXTIER = 5;
-  const LEG = 66, LW = 13, PORTAL = 196, BOOMB = 79, BOOMT = 53, ROPE0 = BOOMB + 11, UP = 170;
+  const LEG = 66, LW = 13, PORTAL = 196, BOOMB = 79, BOOMT = 53, ROPE0 = BOOMB + 11;
+  const VIEW = { full: { y: 0, h: H, up: 170, lbl: WL + 84 }, compact: { y: 226, h: 256, up: 228, lbl: WL + 52 } };
 
   function mount(host, { groups, onOpen, onBay }) {
     const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -287,7 +288,7 @@
       L(`M${x1} ${WL + 80} H${x2} M${x1} ${WL + 76} v4 M${x2} ${WL + 76} v4`);
       const btn = document.createElement("button");
       btn.className = "ship-lbl"; btn.dataset.n = g.n;
-      btn.style.left = (x1 / W * 100) + "%"; btn.style.width = ((x2 - x1) / W * 100) + "%"; btn.style.top = ((WL + 84) / H * 100) + "%";
+      btn.style.left = (x1 / W * 100) + "%"; btn.style.width = ((x2 - x1) / W * 100) + "%";
       btn.innerHTML = `<b>${g.n}</b><span>${g.name}</span>`;
       btn.addEventListener("click", () => onBay(g.n));
       lbls.appendChild(btn);
@@ -295,6 +296,7 @@
     });
 
     // ---------- crane motion ----------
+    let mode = VIEW.full, UP = mode.up;
     let carried = null, fromBay = -1, craneX = 0, hoistY = UP, busy = false, pending = null;
     function layoutStack(i, animate) {
       const b = bays[i];
@@ -314,7 +316,7 @@
       callLine.setAttribute("d", `M${right ? BW / 2 + 4 : -BW / 2 - 4} ${UP + CH / 2} H${x + (right ? -4 : 4)}`);
       for (const [el, y] of [[call1, UP + 8], [call2, UP + 23]]) { el.setAttribute("x", x); el.setAttribute("y", y); el.setAttribute("text-anchor", a); }
       if (carried) { call1.textContent = carried.tag; call2.textContent = `${carried.code} · tier ${carried.tier}`; }
-      callG.style.opacity = carried ? 1 : 0;
+      callG.style.opacity = carried && mode === VIEW.full ? 1 : 0;
     }
     const tween = (el, from, to, ms, easing) => reduce() || ms <= 0 ? Promise.resolve() : el.animate([{ transform: from }, { transform: to }], { duration: ms, easing }).finished.catch(() => {});
     async function travel(x) {
@@ -383,9 +385,21 @@
     setCrane(bayX(0) + BW / 2); setHoist(UP); placeCall();
     matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", () => loops.forEach(a => reduce() ? a.pause() : a.play()));
 
+    function setMode(compact) {
+      const m = compact ? VIEW.compact : VIEW.full;
+      if (m === mode && s.dataset.mode) return;
+      mode = m; UP = m.up; s.dataset.mode = compact ? "compact" : "full";
+      s.setAttribute("viewBox", `0 ${m.y} ${W} ${m.h}`);
+      host.classList.toggle("compact", compact);
+      lbls.querySelectorAll(".ship-lbl").forEach(b => { b.style.top = ((m.lbl - m.y) / m.h * 100) + "%"; });
+      if (!busy) setHoist(UP);
+      placeCall();
+    }
+
     let first = true;
     return {
-      update({ states, sel, topic }) {
+      update({ states, sel, topic, compact = false }) {
+        setMode(compact);
         for (const id in byId) {
           const box = byId[id], st = states[id] || {};
           box.st = st;

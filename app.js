@@ -401,22 +401,29 @@ function renderBay() {
       <div class="legend" id="shipLegend"><span><i></i>Weathered: not drilled yet</span><span><i class="l"></i>Loaded: learning</span><span><i class="m"></i>Sealed: mastered</span><span><i class="l d"></i>Due for review</span><span><i class="m sw" style="background:var(--rust)"></i>S</span><span><i class="m sw" style="background:var(--cobalt);border-color:var(--cobalt)"></i>A</span><span><i class="m sw" style="background:var(--moss);border-color:var(--moss)"></i>B</span><span><i class="m sw" style="background:var(--stone);border-color:var(--stone)"></i>C tier</span></div>`;
     el.dataset.built = "1";
   }
-  const compact = S.view !== "library" || !window.TEUShip;
+  const compact = S.view !== "library";
   el.toggleAttribute("data-compact", compact);
   el.toggleAttribute("data-filter", S.topic !== "all");
   const loaded = DATA.filter(e => prog(e.id)).length, due = DATA.filter(e => prog(e.id) && isDue(e.id)).length;
   $("#bayHead").innerHTML = `<h2>Bay plan · Unit 4 · stowed by subtopic, painted by tier</h2><p>${DATA.length} containers · ${loaded} loaded · ${due} due${S.topic !== "all" ? ` · showing bay ${S.topic}` : ""}</p>${S.topic !== "all" ? `<button class="btn" data-topic="all">All bays</button>` : ""}`;
-  $("#shipHost").hidden = compact; $("#shipLegend").hidden = compact;
-  if (!compact) {
+  $("#shipHost").hidden = !window.TEUShip; $("#shipLegend").hidden = compact || !window.TEUShip;
+  if (window.TEUShip) {
     $("#bayCompact").innerHTML = "";
     if (!ship) ship = TEUShip.mount($("#shipHost"), {
       groups: shipGroups(),
-      onOpen: id => { if (id === S.sel) return; S.sel = id; renderBay(); renderLibrary(); saveUI(); },
+      onOpen: id => {
+        if (S.view === "drill") { drillPin = id; drillFlipped = false; renderDrill(); }
+        else if (S.view === "write") { $("#writePick").value = id; renderWriteQ(); renderBay(); }
+        else if (S.view === "library") { if (id === S.sel) return; S.sel = id; renderBay(); renderLibrary(); saveUI(); }
+        else { S.sel = id; show("library"); }
+      },
       onBay: n => setBay(n === S.topic ? "all" : n),
     });
     const states = {};
     for (const e of DATA) { const c = prog(e.id); states[e.id] = { drilled: !!c, mastered: stateOf(e.id) === "mastered", due: !!c && isDue(e.id) }; }
-    ship.update({ states, sel: S.sel, topic: S.topic });
+    // the crane holds whatever you're working on: the opened example, the drill card, the number's example, the essay's example
+    const focus = { library: S.sel, drill: drillCur, numbers: numQ?.id, match: null, write: $("#writePick").value || null }[S.view] ?? null;
+    ship.update({ states, sel: focus, topic: S.topic, compact });
     lastMoved = null;
     return;
   }
@@ -501,7 +508,7 @@ function renderDrill() {
   if (!drillCur) {
     const next = xs.map(e => prog(e.id)?.due).filter(Boolean).sort((a, b) => a - b)[0];
     $("#drill").innerHTML = `<div class="empty">All caught up in this bay.${next ? ` The next container is due ${new Date(next).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}.` : ""} Tick “Include examples that aren't due” to keep going, or pick another bay.</div>`;
-    return;
+    shipSync(); return;
   }
   const e = BY_ID[drillCur];
   $("#drill").innerHTML = `<div class="flash tier-${e.tier}${drillFlipped ? " wide" : ""}">
@@ -511,7 +518,9 @@ function renderDrill() {
     ${drillFlipped ? `<div class="ans"><div>${storyHTML(e.mem)}<p class="use"><b>Use it for:</b> ${esc(e.mem.use)}</p></div><div>${numsHTML(e.mem)}${butHTML(e.mem)}</div></div>${gradeRow("data-grade", e.id)}${moreHTML(e)}`
       : `<p class="prompt">Before you flip, say out loud: <b>the story</b>, <b>the three numbers</b> and <b>the “but”</b>. Use it for: ${esc(e.mem.use)}.</p>${flipButton('id="flipBtn"')}`}
   </div>`;
+  shipSync();
 }
+const shipSync = () => { if (ship && S.sec === "bank") renderBay(); };
 function doGrade(g) {
   grade(drillCur, g); drillDone++; drillPin = null;
   say(`Graded ${g}.`);
@@ -533,7 +542,7 @@ function newNumQ() {
 const toNum = s => { const m = String(s).replace(/,/g, "").replace(/−/g, "-").match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : NaN; };
 function renderNumbers() {
   if (!numQ || !BY_ID[numQ.id] || !inTopic(BY_ID[numQ.id])) newNumQ();
-  if (!numQ) { $("#numbers").innerHTML = `<div class="empty">No examples in this bay yet.</div>`; return; }
+  if (!numQ) { $("#numbers").innerHTML = `<div class="empty">No examples in this bay yet.</div>`; shipSync(); return; }
   const e = BY_ID[numQ.id];
   const blank = numQ.answered ? `<span class="num-hl">${esc(numQ.n)}</span>` : `<input id="numIn" inputmode="decimal" autocomplete="off" aria-label="The number">`;
   $("#numbers").innerHTML = `<div class="flash tier-${e.tier}">
@@ -545,6 +554,7 @@ function renderNumbers() {
     <p class="score-line">${P.numbers.right} of ${P.numbers.total} correct overall</p>
   </div>`;
   if (!numQ.answered) setTimeout(() => $("#numIn")?.focus({ preventScroll: true }), 0);
+  shipSync();
 }
 function checkNum(reveal) {
   const v = reveal ? "" : ($("#numIn")?.value || "").trim();
@@ -622,6 +632,7 @@ function renderWriteQ() {
   updateWords();
   lastCheck = null;
   renderCheck();
+  shipSync();
 }
 const wordsIn = s => s.trim().split(/\s+/).filter(Boolean).length;
 function updateWords() { $("#wordCount").textContent = wordsIn($("#essay").value) + " words"; }

@@ -549,3 +549,10 @@ body[data-world="board"] .chip[aria-pressed="true"] { background: var(--amber); 
 @media (prefers-reduced-motion: reduce) {
   .ship-svg .sway, .ship-svg .sway2, .ship-svg .beacon { animation: none; }
 }
+/* drill modes: the cropped strip. Codes sit on small chips over the water; the card below carries the names */
+.ship.compact { border-bottom: 0; }
+.ship.compact .ship-lbl { align-items: flex-start; }
+.ship.compact .ship-lbl span { display: none; }
+.ship.compact .ship-lbl b { background: var(--ground); padding: 0 6px; border: 1px solid var(--rule-2); font-size: 13px; }
+.ship.compact .ship-lbl[aria-pressed="true"] b { box-shadow: none; background: var(--ochre); color: #1C2126; }
+.bay[data-compact] .bay-head { margin-bottom: 6px; }
