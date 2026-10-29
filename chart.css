@@ -11,8 +11,8 @@
 @font-face { font-family: "Libre Franklin"; src: url(fonts/LibreFranklin-var-ext.woff2) format("woff2"); font-weight: 400 800; font-display: swap; unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 
 body[data-world="chart"] {
-  --paper: #F4F1E6; --mag: #B0247A; --mag-2: #8E1C62; --vio: #5B4C85; --navy: #1F2C38; --red: #C23B22; --shelf: #BFD9E6; --land: #EDDFB4;
-  --ground: var(--paper); --panel: #FAF7EE; --ink: #2E2A24; --ink-2: #5E574B; --rule: #D9D1BD; --rule-2: #2E2A24;
+  --paper: #F6F3E9; --table: #E4DECD; --deep: #EAF1F0; --mag: #B0247A; --mag-2: #8E1C62; --vio: #5B4C85; --navy: #1F2C38; --red: #C23B22; --shelf: #BFD9E6; --land: #EDDFB4;
+  --ground: var(--table); --panel: #FAF7EE; --ink: #2E2A24; --ink-2: #5E574B; --rule: #D9D1BD; --rule-2: #2E2A24;
   --bar: var(--navy); --bar-ink: #EEE8D8; --bar-ink-2: #A9B3BC;
   --ochre: var(--mag); --ochre-ink: var(--mag-2); --rust: var(--red); --cobalt: #2D5E7A; --moss: #2D5E7A; --stone: #7A715F;
   --good: #2D5E7A; --bad: var(--red); --good-soft: #DCE8EE; --bad-soft: #F5DCD5; --hl: #F3E3EC;
@@ -76,9 +76,9 @@ body[data-world="chart"][data-view="notes"] #view-notes .view-head { display: no
 .cx-chart { display: block; width: 100%; height: auto; }
 .cx-snd text { font: italic 7px var(--f-body); fill: #8DA9B8; opacity: .65; }
 .cx-n { font: italic 11px var(--f-body); fill: var(--mag); }
-.cx-pn { font: 700 11.5px var(--f-board); fill: var(--ink); paint-order: stroke; stroke: #F4F1E6; stroke-width: 3px; stroke-linejoin: round; }
-.cx-pp { font: italic 10px var(--f-body); fill: var(--ink-2); paint-order: stroke; stroke: #F4F1E6; stroke-width: 3px; stroke-linejoin: round; }
-.cx-pl { font: italic 12px var(--f-body); paint-order: stroke; stroke: #F4F1E6; stroke-width: 3px; stroke-linejoin: round; cursor: pointer; }
+.cx-pn { font: 700 11.5px var(--f-board); fill: var(--ink); paint-order: stroke; stroke: var(--deep); stroke-width: 3px; stroke-linejoin: round; }
+.cx-pp { font: italic 10px var(--f-body); fill: var(--ink-2); paint-order: stroke; stroke: var(--deep); stroke-width: 3px; stroke-linejoin: round; }
+.cx-pl { font: italic 12px var(--f-body); paint-order: stroke; stroke: var(--deep); stroke-width: 3px; stroke-linejoin: round; cursor: pointer; }
 .cx-port, .cx-pin { cursor: pointer; }
 .cx-deg text { font: 500 8px var(--f-board); fill: var(--ink-2); }
 .cx-scale text { font: 500 8px var(--f-board); fill: var(--ink); }

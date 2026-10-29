@@ -12,7 +12,7 @@ window.TEUChart = (() => {
   const GRADE_WORDS = { again: "Ran aground", hard: "Heavy weather", good: "Fair winds", easy: "Full sail" };
   const W = 1000, H = 392;
   const P = (lon, lat) => [(lon + 180) * W / 360, (83 - lat) * W / 360];
-  const INK = "#2E2A24", MAG = "#B0247A", VIO = "#5B4C85", RED = "#C23B22", PAPER = "#F4F1E6", SEA = "#8DA9B8", LAND = "#EDDFB4";
+  const INK = "#2E2A24", MAG = "#B0247A", VIO = "#5B4C85", RED = "#C23B22", PAPER = "#F6F3E9", DEEP = "#EAF1F0", SEA = "#8DA9B8", LAND = "#EDDFB4";
   // One port per subtopic: a real harbour linked to its flagship example, and the reason in one line
   const PORT = {
     "4.1": ["Valparaíso", -71.6, -33.0, "Chile's cherries to China"], "4.2": ["Rotterdam", 4.5, 51.9, "EU tariffs on Chinese EVs and steel"],
@@ -145,7 +145,7 @@ window.TEUChart = (() => {
     place(marks, blocked);
     const lbl = marks.map(m => { const p = m.pos; if (!p) return ""; const lead = p.r > 12 ? `<path d="M${m.x.toFixed(1)},${m.y.toFixed(1)}L${(p.anchor === "start" ? p.x : p.anchor === "end" ? p.x + p.w : p.x + p.w / 2).toFixed(1)},${(p.y + p.h / 2).toFixed(1)}" stroke="${m.col || INK}" stroke-width=".7" stroke-dasharray="2 2"/>` : "";
       return lead + label(m, p); }).join("");
-    return `<rect x="-38" y="-32" width="${W + 76}" height="${H + 64}" fill="${PAPER}"/><rect width="${W}" height="${H}" fill="${PAPER}"/>
+    return `<rect x="-38" y="-32" width="${W + 76}" height="${H + 64}" fill="${PAPER}"/><rect width="${W}" height="${H}" fill="${DEEP}"/>
       <g clip-path="url(#cxClip)">${soundings(seed)}${f.grat}<use href="#cxShelf2"/><use href="#cxShelf"/><use href="#cxLand"/>${hl}${roses.map(r => rose(...r)).join("")}</g>
       ${marks.map(m => m.glyph).join("")}${lbl}${f.border}`;
   }
