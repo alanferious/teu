@@ -5,8 +5,8 @@
    The map is drawn from data/world.js. Loaded before app.js and only reads its globals when called. */
 window.TEUChart = (() => {
   const UIK = "teu-chart";
-  const ui = { map: false };                            // phones: the chart is behind a toggle
-  try { const u = JSON.parse(localStorage.getItem(UIK)) || {}; ui.map = !!u.map; } catch {}
+  const ui = { map: false, anch: null };               // phones: the chart is behind a toggle; anch: ports already celebrated
+  try { const u = JSON.parse(localStorage.getItem(UIK)) || {}; ui.map = !!u.map; if (Array.isArray(u.anch)) ui.anch = u.anch; } catch {}
   const saveUi = () => { try { localStorage.setItem(UIK, JSON.stringify(ui)); } catch {} };
   const NM = [0, 40, 120, 160];                          // nautical miles per grade: Forgot, Shaky, Got it, Easy
   const GRADE_WORDS = { again: "Ran aground", hard: "Heavy weather", good: "Fair winds", easy: "Full sail" };
@@ -111,7 +111,12 @@ window.TEUChart = (() => {
   function frame() {
     let d = ""; for (let x = 0; x <= W; x += 10) d += `M${x},0v5M${x},${H}v-5`; for (let y = 0; y <= H; y += 10) d += `M0,${y}h5M${W},${y}h-5`;
     let g = ""; for (let lon = -150; lon <= 180; lon += 30) g += `M${P(lon, 0)[0].toFixed(1)},0V${H}`; for (const lat of [60, 30, 0, -30]) g += `M0,${P(0, lat)[1].toFixed(1)}H${W}`;
-    return { grat: `<path d="${g}" stroke="${INK}" stroke-opacity=".16" stroke-width=".7" fill="none"/>`, border: `<rect width="${W}" height="${H}" fill="none" stroke="${INK}" stroke-width="1.4"/><path d="${d}" stroke="${INK}" stroke-width=".8"/><rect x="-12" y="-12" width="${W + 24}" height="${H + 24}" fill="none" stroke="${INK}" stroke-width=".6"/>` };
+    let deg = "";
+    for (let lon = -150; lon <= 150; lon += 30) { const x = P(lon, 0)[0].toFixed(1), t = lon === 0 ? "0°" : `${Math.abs(lon)}°${lon < 0 ? "W" : "E"}`; deg += `<text x="${x}" y="-16" text-anchor="middle">${t}</text><text x="${x}" y="${H + 23}" text-anchor="middle">${t}</text>`; }
+    for (const lat of [60, 30, 0, -30]) { const y = (P(0, lat)[1] + 3).toFixed(1), t = lat === 0 ? "0°" : `${Math.abs(lat)}°${lat > 0 ? "N" : "S"}`; deg += `<text x="-15" y="${y}" text-anchor="end">${t}</text><text x="${W + 15}" y="${y}">${t}</text>`; }
+    const nm = W / 360 / 60 * 1000;                     // 1,000 nautical miles at the equator, in chart units
+    const scale = `<g class="cx-scale" transform="translate(18,${H - 26})"><text y="-5">Nautical miles at the equator</text><path d="M0,0h${(nm * 2).toFixed(1)}M0,-3v6M${nm.toFixed(1)},-3v6M${(nm * 2).toFixed(1)},-3v6" stroke="${INK}" stroke-width="1"/><rect y="-2" width="${nm.toFixed(1)}" height="4" fill="${INK}"/><text y="14">0</text><text x="${nm.toFixed(1)}" y="14" text-anchor="middle">1,000</text><text x="${(nm * 2).toFixed(1)}" y="14" text-anchor="middle">2,000</text></g>`;
+    return { grat: `<path d="${g}" stroke="${INK}" stroke-opacity=".16" stroke-width=".7" fill="none"/>`, border: `<rect width="${W}" height="${H}" fill="none" stroke="${INK}" stroke-width="1.4"/><path d="${d}" stroke="${INK}" stroke-width=".8"/><rect x="-12" y="-12" width="${W + 24}" height="${H + 24}" fill="none" stroke="${INK}" stroke-width=".6"/><g class="cx-deg">${deg}</g>${scale}<text class="cx-no" x="${W - 16}" y="${H - 12}" text-anchor="end">TEU chart 4 · soundings are decoration</text>` };
   }
   // Labels go where they fit: try eight directions at three distances, avoiding every other label, marker and rose
   const textW = (s, px) => s.length * px * .56;
@@ -140,7 +145,7 @@ window.TEUChart = (() => {
     place(marks, blocked);
     const lbl = marks.map(m => { const p = m.pos; if (!p) return ""; const lead = p.r > 12 ? `<path d="M${m.x.toFixed(1)},${m.y.toFixed(1)}L${(p.anchor === "start" ? p.x : p.anchor === "end" ? p.x + p.w : p.x + p.w / 2).toFixed(1)},${(p.y + p.h / 2).toFixed(1)}" stroke="${m.col || INK}" stroke-width=".7" stroke-dasharray="2 2"/>` : "";
       return lead + label(m, p); }).join("");
-    return `<rect x="-30" y="-30" width="${W + 60}" height="${H + 60}" fill="${PAPER}"/><rect width="${W}" height="${H}" fill="${PAPER}"/>
+    return `<rect x="-38" y="-32" width="${W + 76}" height="${H + 64}" fill="${PAPER}"/><rect width="${W}" height="${H}" fill="${PAPER}"/>
       <g clip-path="url(#cxClip)">${soundings(seed)}${f.grat}<use href="#cxShelf2"/><use href="#cxShelf"/><use href="#cxLand"/>${hl}${roses.map(r => rose(...r)).join("")}</g>
       ${marks.map(m => m.glyph).join("")}${lbl}${f.border}`;
   }
@@ -165,7 +170,7 @@ window.TEUChart = (() => {
   function homeHTML() {
     const ps = subs().map(t => port(t.n)), nx = nextPort(ps), pp = papers();
     const marks = ps.map(p => { const [x, y] = P(PORT[p.n][1], PORT[p.n][2]); const l1 = `${p.n} ${SHORT[p.n]}`, l2 = p.name;
-      return { x, y, p, w: Math.max(textW(l1, 11.5), textW(l2, 10)), h: 26, glyph: `<g class="cx-port" data-ctopic="${p.n}"><title>${p.n} ${esc(p.t.short)}: ${esc(p.label)}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16" fill="transparent"/>${buoy(p.state, x, y)}${nx && nx.n === p.n ? SHIP(x, y) : ""}</g>`, l1, l2 }; });
+      return { x, y, p, w: Math.max(textW(l1, 11.5), textW(l2, 10)), h: 26, glyph: `<g class="cx-port" data-ctopic="${p.n}"><title>${p.n} ${esc(p.t.short)}: ${esc(p.label)}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16" fill="transparent"/>${nx && nx.n === p.n ? `<circle class="cx-flash" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" fill="none" stroke="${MAG}" stroke-width="2"/>` : ""}<g class="mk">${buoy(p.state, x, y)}</g>${nx && nx.n === p.n ? `<g class="cx-shipg">${SHIP(x, y)}</g>` : ""}</g>`, l1, l2 }; });
     const svg = chartSVG({ seed: 11, marks, roses: [[150, 300, 44], [690, 332, 36]],
       label: (m, p) => `<g class="cx-port" data-ctopic="${m.p.n}"><text x="${p.tx.toFixed(1)}" y="${(p.y + 11).toFixed(1)}" text-anchor="${p.anchor}" class="cx-pn">${esc(m.l1)}</text><text x="${p.tx.toFixed(1)}" y="${(p.y + 23).toFixed(1)}" text-anchor="${p.anchor}" class="cx-pp">${esc(m.l2)}</text></g>` });
     const rows = ps.map(p => `<button class="cx-row" data-ctopic="${p.n}"><span class="n">${p.n}</span><span class="nm"><b>${esc(p.t.name)}${hlMark(p.t.hl)}</b><small>Port of ${esc(p.name)}: ${esc(p.why)}</small></span><span class="num">${p.done} of ${p.terms.length}</span><span class="num">${DATA.filter(e => e.topic === p.n).length}</span><span class="st st-${p.state}">${esc(p.label)}</span></button>`).join("");
@@ -175,7 +180,7 @@ window.TEUChart = (() => {
       <div class="cx-title"><div><p class="cx-cap">TEU Hydrographic · Unit 4 · The global economy</p><h2>Chart of the World Economy</h2></div>
         <div class="cx-act"><p>${nx ? `Next port: <b>${nx.n} ${esc(nx.t.short)}</b>, ${esc(nx.label.toLowerCase())}` : "Every port anchored"}</p>${go}</div></div>
       <button class="cx-maptoggle" data-cx="map" aria-expanded="${ui.map}">${ui.map ? "Hide the chart" : "Show the chart"}</button>
-      <div class="cx-map${ui.map ? " on" : ""}"><svg class="cx-chart" viewBox="-30 -30 ${W + 60} ${H + 60}" aria-hidden="true" focusable="false">${svg}</svg>${KEY_HTML}</div>
+      <div class="cx-map${ui.map ? " on" : ""}"><svg class="cx-chart" viewBox="-38 -32 ${W + 76} ${H + 64}" aria-hidden="true" focusable="false">${svg}</svg>${KEY_HTML}</div>
       <div class="cx-lay">
         <section><h3 class="cx-h">Subtopics <span>ports of call, in syllabus order</span></h3>
           <div class="cx-table"><div class="cx-row h" aria-hidden="true"><span>No.</span><span>Subtopic</span><span class="num">Mastered</span><span class="num">Examples</span><span class="st">Status</span></div>${rows}</div></section>
@@ -194,7 +199,7 @@ window.TEUChart = (() => {
     const drilled = e => !!prog(e.id), tint = {};
     for (const e of ex) for (const c of pinOf(e)[2]) if (!(c in tint) || drilled(e)) tint[c] = drilled(e) ? "#E2B28F" : "#E6CF92";
     const marks = ex.flatMap(e => pinOf(e)[1].map(([lon, lat]) => { const [x, y] = P(lon, lat), on = drilled(e), col = on ? MAG : VIO;
-      return { x, y, e, col, w: textW(e.mem.tag, 12), h: 15, glyph: `<g class="cx-pin" data-cxex="${esc(e.id)}"><title>${esc(e.mem.tag)}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="12" fill="transparent"/><path d="M${x.toFixed(1)},${(y - 6).toFixed(1)}l5,6 -5,6 -5,-6z" fill="${on ? MAG : PAPER}" stroke="${col}" stroke-width="1.5"/></g>` }; }));
+      return { x, y, e, col, w: textW(e.mem.tag, 12), h: 15, glyph: `<g class="cx-pin" data-cxex="${esc(e.id)}"><title>${esc(e.mem.tag)}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="12" fill="transparent"/><path class="mk" d="M${x.toFixed(1)},${(y - 6).toFixed(1)}l5,6 -5,6 -5,-6z" fill="${on ? MAG : PAPER}" stroke="${col}" stroke-width="1.5"/></g>` }; }));
     const svg = chartSVG({ seed: 23 + i, tint, marks, roses: [[470, 300, 40]],
       label: (m, q) => `<text x="${q.tx.toFixed(1)}" y="${(q.y + 11.5).toFixed(1)}" text-anchor="${q.anchor}" class="cx-pl" fill="${m.col}" data-cxex="${esc(m.e.id)}">${esc(m.e.mem.tag)}</text>` });
     const pinned = ex.filter(e => pinOf(e)[1].length).length, nDrilled = ex.filter(drilled).length;
@@ -213,7 +218,7 @@ window.TEUChart = (() => {
       <div class="cx-title"><div><p class="cx-cap">Plate ${n} · Port of ${esc(p.name)}, ${esc(p.why)}</p><h2>${n} ${esc(t.name)}${hlMark(t.hl)}</h2></div>
         <div class="cx-act"><p>${pinned} example${pinned === 1 ? "" : "s"} pinned · ${nDrilled} drilled</p></div></div>
       <button class="cx-maptoggle" data-cx="map" aria-expanded="${ui.map}">${ui.map ? "Hide the chart" : "Show the chart"}</button>
-      <div class="cx-map${ui.map ? " on" : ""}" id="cxPlate"><svg class="cx-chart" viewBox="-30 -30 ${W + 60} ${H + 60}" aria-hidden="true" focusable="false">${svg}</svg>
+      <div class="cx-map${ui.map ? " on" : ""}" id="cxPlate"><svg class="cx-chart" viewBox="-38 -32 ${W + 76} ${H + 64}" aria-hidden="true" focusable="false">${svg}</svg>
         <div class="cx-key" aria-hidden="true"><span class="k">Key</span><span><svg viewBox="-7 -8 14 16"><path d="M0,-6l5,6 -5,6 -5,-6z" fill="${MAG}" stroke="${MAG}"/></svg>Example drilled</span><span><svg viewBox="-7 -8 14 16"><path d="M0,-6l5,6 -5,6 -5,-6z" fill="${PAPER}" stroke="${VIO}" stroke-width="1.5"/></svg>Example to drill</span><span><i class="sw"></i>Its country</span><span class="note">Click a pin to open its example below.</span></div></div>
       <div class="cx-bar"><span class="fl">${n} ${esc(t.short)}</span><span class="s st-${p.state}">${esc(p.label)}</span><span class="c">${p.done} mastered · ${p.due} due · ${p.fresh} new · ${p.terms.length} terms</span>${go}</div>
       <p class="cx-big">${esc(t.big)}</p>
@@ -241,17 +246,53 @@ window.TEUChart = (() => {
     if (host !== el) { host = el; wire(el); }
     const n = CT[S.ctopic]?.unit === "4" ? S.ctopic : null;
     el.innerHTML = n ? plateHTML(n) : homeHTML();
+    if (!n) voyage(el);
+  }
+  // The one big moment in Unit 4: a port is anchored, so the anchor drops, the course to the next port is
+  // drawn and the ship sails it. It plays once per anchoring; a port that slips back can be celebrated again.
+  function voyage(el) {
+    const ps = subs().map(t => port(t.n)), anchored = ps.filter(p => p.state === "anchored").map(p => p.n);
+    if (!ui.anch) { ui.anch = anchored; saveUi(); return; }          // first visit after this feature shipped: nothing to celebrate yet
+    const fresh = anchored.filter(n => !ui.anch.includes(n)), svg = el.querySelector(".cx-chart");
+    if (fresh.length && !svg?.getClientRects().length) return;     // chart hidden (phone): keep the moment for when it's shown
+    ui.anch = anchored; saveUi();
+    const from = fresh.at(-1), to = nextPort(ps);
+    if (!from) return;
+    const a = P(PORT[from][1], PORT[from][2]), mk = svg.querySelector(`.cx-port[data-ctopic="${from}"] .mk`), ship = svg.querySelector(".cx-shipg");
+    const stamp = document.createElement("div");
+    stamp.className = "cx-stamp"; stamp.setAttribute("aria-hidden", "true");
+    stamp.innerHTML = `${from} anchored<small>${esc(PORT[from][0])} · ${esc(SHORT[from])}</small>`;
+    el.querySelector(".cx-map").append(stamp);
+    say(`${from} ${CT[from].short} anchored: every term mastered.${to ? ` Next port: ${to.n} ${to.name}.` : ""}`);
+    const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)", EASE_IO = "cubic-bezier(0.77, 0, 0.175, 1)";
+    // the stamp lands, holds long enough to read, then lifts off the chart
+    const showStamp = () => stamp.animate([{ opacity: 0, transform: "translate(-50%, -50%) rotate(-7deg) scale(1.08)" }, { opacity: 1, transform: "translate(-50%, -50%) rotate(-7deg) scale(1)", offset: .08 }, { opacity: 1, transform: "translate(-50%, -50%) rotate(-7deg) scale(1)", offset: .88 }, { opacity: 0, transform: "translate(-50%, -50%) rotate(-7deg) scale(1)" }], { duration: 3400, easing: "linear", fill: "forwards" }).finished.then(() => stamp.remove()).catch(() => {});
+    if (calm()) { mk?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease" }); showStamp(); return; }
+    mk?.animate([{ opacity: 0, transform: "translateY(-8px) scale(.94)" }, { opacity: 1, transform: "translateY(0) scale(1)" }], { duration: 420, delay: 300, easing: EASE_OUT, fill: "backwards" });
+    if (!to || !ship) { setTimeout(showStamp, 700); return; }
+    // the course bows away from the straight line, as a plotted route does, then the ship follows it
+    const b = P(PORT[to.n][1], PORT[to.n][2]), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
+    const c = [mx + dy / len * len * .18, my - dx / len * len * .18];
+    const ns = "http://www.w3.org/2000/svg", course = document.createElementNS(ns, "path");
+    course.setAttribute("d", `M${a[0].toFixed(1)},${a[1].toFixed(1)} Q${c[0].toFixed(1)},${c[1].toFixed(1)} ${b[0].toFixed(1)},${b[1].toFixed(1)}`);
+    course.setAttribute("class", "cx-course"); ship.before(course);
+    const L = course.getTotalLength();
+    course.style.strokeDasharray = `${L}`;
+    course.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 1400, delay: 800, easing: EASE_IO, fill: "backwards" });
+    const kf = []; for (let i = 0; i <= 30; i++) { const q = course.getPointAtLength(L * i / 30); kf.push({ transform: `translate(${(q.x - b[0]).toFixed(1)}px, ${(q.y - b[1]).toFixed(1)}px)` }); }
+    ship.animate(kf, { duration: 2600, delay: 900, easing: EASE_IO, fill: "backwards" }).finished.then(() => { course.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, delay: 1200, easing: "ease", fill: "forwards" }); showStamp(); }).catch(() => {});
   }
   function openEx(id) {
     const d = host?.querySelector(`details.cx-ex[data-cxex="${CSS.escape(id)}"]`); if (!d) return;
     d.open = true; d.scrollIntoView({ block: "start", behavior: calm() ? "auto" : "smooth" }); d.querySelector("summary").focus({ preventScroll: true });
+    d.classList.remove("lit"); void d.offsetWidth; d.classList.add("lit");
   }
   function wire(el) {
     el.addEventListener("click", ev => {
       const pt = ev.target.closest(".cx-port");
       if (pt && el.contains(pt)) { setScope(pt.dataset.ctopic); window.scrollTo({ top: 0 }); return; }
       const b = ev.target.closest("[data-cx], [data-cxex]"); if (!b || !el.contains(b) || b.matches("details")) return;
-      if (b.dataset.cx === "map") { ui.map = !ui.map; saveUi(); el.querySelectorAll(".cx-map").forEach(m => m.classList.toggle("on", ui.map)); el.querySelectorAll('[data-cx="map"]').forEach(x => { x.setAttribute("aria-expanded", ui.map); x.textContent = ui.map ? "Hide the chart" : "Show the chart"; }); }
+      if (b.dataset.cx === "map") { ui.map = !ui.map; saveUi(); el.querySelectorAll(".cx-map").forEach(m => m.classList.toggle("on", ui.map)); el.querySelectorAll('[data-cx="map"]').forEach(x => { x.setAttribute("aria-expanded", ui.map); x.textContent = ui.map ? "Hide the chart" : "Show the chart"; }); if (ui.map && !CT[S.ctopic]) voyage(el); }
       else if (b.dataset.cx === "top") { const m = el.querySelector(".cx-map"); (m?.offsetParent ? m : el).scrollIntoView({ block: "start", behavior: calm() ? "auto" : "smooth" }); }
       else if (b.dataset.cxex && !b.closest("summary")) openEx(b.dataset.cxex);
     });

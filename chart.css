@@ -80,7 +80,30 @@ body[data-world="chart"][data-view="notes"] #view-notes .view-head { display: no
 .cx-pp { font: italic 10px var(--f-body); fill: var(--ink-2); paint-order: stroke; stroke: #F4F1E6; stroke-width: 3px; stroke-linejoin: round; }
 .cx-pl { font: italic 12px var(--f-body); paint-order: stroke; stroke: #F4F1E6; stroke-width: 3px; stroke-linejoin: round; cursor: pointer; }
 .cx-port, .cx-pin { cursor: pointer; }
-@media (hover: hover) and (pointer: fine) { .cx-port:hover .cx-pn, .cx-pl:hover { text-decoration: underline; } }
+.cx-deg text { font: 500 8px var(--f-board); fill: var(--ink-2); }
+.cx-scale text { font: 500 8px var(--f-board); fill: var(--ink); }
+.cx-no { font: italic 9px var(--f-body); fill: var(--ink-2); }
+/* hover: the marker grows a touch, mouse only */
+.cx-chart .mk { transform-box: fill-box; transform-origin: center; transition: transform 150ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  .cx-port:hover .cx-pn, .cx-pl:hover { text-decoration: underline; }
+  .cx-port:hover .mk, .cx-pin:hover .mk { transform: scale(1.15); }
+}
+/* the next port's light flashes like a chart light (one flash every 4 seconds); the only idle motion in Unit 4 */
+.cx-flash { animation: cx-fl 4s linear infinite; }
+@keyframes cx-fl { 0%, 14%, 100% { opacity: .15; } 5% { opacity: .9; } }
+/* the voyage: a course drawn in magenta, then a stamp */
+.cx-course { fill: none; stroke: var(--mag); stroke-width: 1.6; stroke-linecap: round; }
+.cx-map { position: relative; }
+.cx-stamp { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%) rotate(-7deg); opacity: 0; pointer-events: none; border: 3px solid var(--mag); color: var(--mag-2); background: #F4F1E6E8; padding: 8px 20px 10px; text-align: center; font: 800 clamp(16px, 2.6vw, 28px)/1.05 var(--f-board); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.cx-stamp small { display: block; font: italic 400 clamp(11px, 1.2vw, 14px) var(--f-body); letter-spacing: 0; text-transform: none; margin-top: 4px; }
+.cx-ex.lit > summary { animation: cx-lit 1.4s var(--ease-out); }
+@keyframes cx-lit { from { background: #F0C8DE; } }
+@media (prefers-reduced-motion: reduce) {
+  .cx-flash { animation: none; opacity: .5; }
+  .cx-chart .mk { transition: none; }
+  .cx-ex.lit > summary { animation: none; }
+}
 .cx-key { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; font: 500 13px var(--f-board); color: var(--ink-2); }
 .cx-key .k { font: 700 12px var(--f-board); letter-spacing: .16em; text-transform: uppercase; color: var(--ink); }
 .cx-key span { display: inline-flex; align-items: center; gap: 6px; }
@@ -166,6 +189,7 @@ body[data-world="chart"][data-view="notes"] #view-notes .view-head { display: no
 .cx-log .prompt { font-style: italic; }
 
 /* ---------- Narrow screens ---------- */
+@keyframes cx-in { from { opacity: 0; transform: translateY(4px); } }
 @media (max-width: 1100px) {
   .cx-lay, .cx-grid { grid-template-columns: minmax(0, 1fr); }
 }
@@ -173,7 +197,7 @@ body[data-world="chart"][data-view="notes"] #view-notes .view-head { display: no
   /* on phones the subtopic table leads; the world chart is too small to read until asked for */
   .cx-maptoggle { display: inline-flex; justify-self: start; background: none; border: 2px solid var(--navy); color: var(--navy); padding: 6px 14px; font: 700 14.5px var(--f-board); min-height: 40px; align-items: center; }
   .cx-map { display: none; }
-  .cx-map.on { display: grid; }
+  .cx-map.on { display: grid; animation: cx-in 200ms var(--ease-out); }
   .cx-title h2 { font-size: 26px; }
   .cx-row { grid-template-columns: 38px minmax(0, 1fr) auto; }
   .cx-row .num { display: none; }
