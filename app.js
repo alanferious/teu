@@ -266,14 +266,16 @@ const minutes = (n, per) => { const m = Math.max(1, Math.round(n * per / 60)); r
 
 // ---------- World ----------
 const scopeUnit = () => S.ctopic === "all" ? null : S.ctopic[0] === "u" ? S.ctopic.slice(1) : S.ctopic.split(".")[0];
-const worldOf = () => S.sec === "bank" ? "manifest" : ({ 3: "board", 4: "manifest" })[scopeUnit()] || "port";
+const worldOf = () => S.sec === "bank" ? "manifest" : ({ 2: "terminal", 3: "board", 4: "manifest" })[scopeUnit()] || "port";
 function applyWorld() {
   const w = worldOf();
   document.body.dataset.world = w;
   document.body.dataset.sec = S.sec;
   document.body.dataset.view = S.view;
-  $("#tab-rwe").hidden = S.sec !== "course" || w !== "board";
-  document.querySelector('meta[name="theme-color"]').content = w === "board" ? "#000000" : getComputedStyle(document.documentElement).getPropertyValue("--bar").trim() || "#1C2126";
+  $("#tab-rwe").hidden = S.sec !== "course" || (w !== "board" && w !== "terminal");
+  $("#rweSub").textContent = w === "terminal" ? "The best real-world examples for Unit 2, sold in the terminal's duty free. Recall is graded and scheduled like your flashcards; Numbers and Pick the example are practice."
+    : "The best real-world examples for Unit 3, each one a stock you trade by recalling it. Recall is graded and moves prices; Numbers and Pick the example are practice.";
+  document.querySelector('meta[name="theme-color"]').content = w === "board" ? "#000000" : w === "terminal" ? "#16363F" : getComputedStyle(document.documentElement).getPropertyValue("--bar").trim() || "#1C2126";
   renderTicker();
 }
 
@@ -328,11 +330,11 @@ function renderStats() {
     const ids = [...CDEFS, ...CDIAG].map(x => x.id);
     const due = ids.filter(id => prog(id) && isDue(id)).length;
     const mastered = ids.filter(id => stateOf(id) === "mastered").length;
-    $("#stats").innerHTML = `${CDEFS.length} terms · ${CDIAG.length} diagrams · <b>${mastered}</b> mastered · <b>${due}</b> due`;
+    $("#stats").innerHTML = worldOf() === "terminal" ? TEUAir.stats() : `${CDEFS.length} terms · ${CDIAG.length} diagrams · <b>${mastered}</b> mastered · <b>${due}</b> due`;
     const badge = xs => { const n = xs.filter(x => inScope(x) && prog(x.id) && isDue(x.id)).length; return n ? String(n) : ""; };
     $("#cardsBadge").textContent = badge(CDEFS);
     $("#diagBadge").textContent = badge(CDIAG);
-    $("#rweBadge").textContent = TEUStocks.rweDue() || "";
+    $("#rweBadge").textContent = (worldOf() === "terminal" ? TEUAir.rweDue() : TEUStocks.rweDue()) || "";
     $("#dueBadge").textContent = "";
   } else {
     const loaded = DATA.filter(e => prog(e.id)).length;
@@ -381,7 +383,7 @@ const masteryOf = ids => ids.length ? ids.filter(id => stateOf(id) === "mastered
 
 function renderRail() {
   if (S.sec !== "course") { $("#rail").innerHTML = ""; return; }
-  const board = worldOf() === "board";
+  const board = worldOf() === "board", air = worldOf() === "terminal";
   const allIds = courseIds(() => true);
   let html = `<div class="rail-all"><button class="topic" data-ctopic="all" aria-pressed="${S.ctopic === "all"}" style="--uc:var(--ink)"><span class="n">1–4</span><span class="nm">Whole course</span><span class="ct">${allIds.length}</span><span class="meter"><i style="--m:${masteryOf(allIds)}"></i></span></button></div>`;
   for (const u of UNITS) {
@@ -391,6 +393,7 @@ function renderRail() {
       ts.map(t => {
         const ids = courseIds(x => x.n === t.n);
         let right = `<span class="ct">${ids.length}</span>`;
+        if (air && u.u === "2") right = `<span class="ct gate">${TEUAir.gateOf(t.n)}</span>`;
         if (board && u.u === "3") { const xs = CDEFS.filter(d => d.n === t.n), ix = indexAt(xs, now()), chg = ix - indexAt(xs, now() - DAY); right = `<span class="idx${chg < -.004 ? " dn" : chg > .004 ? " up" : ""}">${fmt(ix)}</span>`; }
         return `<button class="topic" data-ctopic="${t.n}" aria-pressed="${S.ctopic === t.n}"><span class="n">${t.n}</span><span class="nm">${esc(t.short)}${hlMark(t.hl)}</span>${right}<span class="meter"><i style="--m:${masteryOf(ids)}"></i></span></button>`;
       }).join("") + `</div>`;
@@ -504,11 +507,13 @@ function drillQueue() {
   return [...due, ...fresh, ...later];
 }
 function gradeRow(attr, id) {
+  // Unit 2's airport names each outcome too: missed the flight, standby, boarded, upgraded
+  const w = worldOf() === "terminal" ? TEUAir.GRADE_WORDS : null, lbl = g => (w ? w[g] + " · " : "") + previewInterval(id, g);
   return `<div class="grades">
-    <button class="btn g-again" ${attr}="again">Forgot<small>${previewInterval(id, "again")}</small></button>
-    <button class="btn" ${attr}="hard">Shaky<small>${previewInterval(id, "hard")}</small></button>
-    <button class="btn" ${attr}="good">Got it<small>${previewInterval(id, "good")}</small></button>
-    <button class="btn g-easy" ${attr}="easy">Easy<small>${previewInterval(id, "easy")}</small></button>
+    <button class="btn g-again" ${attr}="again">Forgot<small>${lbl("again")}</small></button>
+    <button class="btn" ${attr}="hard">Shaky<small>${lbl("hard")}</small></button>
+    <button class="btn" ${attr}="good">Got it<small>${lbl("good")}</small></button>
+    <button class="btn g-easy" ${attr}="easy">Easy<small>${lbl("easy")}</small></button>
   </div><p class="keys">Keys <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></p>`;
 }
 const flipButton = attr => `<div><button class="btn primary" ${attr}>Show answer <kbd>Space</kbd></button></div>`;
@@ -786,6 +791,7 @@ function renderNotes() {
   $("#notesSub").textContent = t ? "" : "Pick a subtopic. Each has the definitions to learn word for word, key ideas, every diagram with drawing steps, formulas, evaluation points and exam traps. HL marks Higher Level only content.";
   $("#notesSub").hidden = !!t;
   const q = S.cq.trim();
+  if (worldOf() === "terminal" && q.length < 2) { TEUAir.render($("#notes")); return; }
   $("#notes").innerHTML = q.length > 1 ? searchHits(q) : t ? topicArticle(t) : topicIndex();
 }
 
@@ -808,8 +814,8 @@ function renderDeck(name) {
   const n = xs.filter(x => isDue(x.id)).length;
   $(D.info).textContent = `${n} due or new in ${scopeName()}${n ? ", " + minutes(n, D.per) : ""}${D.done ? ` · ${D.done} reviewed this session` : ""}`;
   if (!D.cur || !q.find(x => x.id === D.cur)) { D.cur = q[0]?.id || null; D.flipped = false; D.call = 0; }
-  const stx = worldOf() === "board" && name === "cards";
-  const trade = stx ? TEUStocks.tradeBar(D) : "";
+  const stx = worldOf() === "board" && name === "cards", air = worldOf() === "terminal" && name === "cards";
+  const trade = stx ? TEUStocks.tradeBar(D) : air ? TEUAir.itinerary() : "";
   if (!D.cur) {
     const recap = stx ? TEUStocks.recap(D) : "";
     if (recap) { $(D.el).innerHTML = recap; return; }
@@ -831,7 +837,7 @@ function renderDeck(name) {
       ? `${x.spec ? drawDiagram(x.spec) : ""}${x.steps?.length ? `<ol style="margin:0;padding-left:20px;display:grid;gap:3px;max-width:70ch">${x.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}${gradeRow("data-cgrade", x.id)}`
       : `<p class="prompt">Sketch it on paper: label both axes, draw and label every curve, mark the equilibrium and any shift or shaded area.</p>${flipButton('data-cflip="1"')}`);
   }
-  $(D.el).innerHTML = `${trade}<div class="flash">${head}${quote}${body}</div>`;
+  $(D.el).innerHTML = air && x.unit === "2" ? TEUAir.pass(x, body, $("#cardsRev").checked && !D.flipped) : `${trade}<div class="flash">${head}${quote}${body}</div>`;
 }
 function deckUndo(name) {
   const D = DECKS[name], u = D.undo; if (!u) return;
@@ -905,13 +911,13 @@ function show(v) {
   renderAll();
 }
 function renderView() {
-  ({ notes: renderNotes, cards: () => renderDeck("cards"), diagrams: () => renderDeck("diagrams"), quiz: renderQuiz, rwe: () => TEUStocks.renderRwe($("#rwe")),
+  ({ notes: renderNotes, cards: () => renderDeck("cards"), diagrams: () => renderDeck("diagrams"), quiz: renderQuiz, rwe: () => worldOf() === "terminal" ? TEUAir.renderRwe($("#rwe")) : TEUStocks.renderRwe($("#rwe")),
      library: renderLibrary, drill: renderDrill, numbers: renderNumbers, match: renderMatch, write: renderWritePick })[S.view]();
 }
 function ensureSel() { if (!S.sel || !BY_ID[S.sel] || !inTopic(BY_ID[S.sel])) S.sel = pool().sort((a, b) => b.score - a.score)[0]?.id || null; }
 function renderAll() { ensureSel(); applyWorld(); renderRail(); renderBay(); renderStats(); renderView(); saveUI(); }
 function setScope(key) {
-  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; TEUStocks.resetRwe(); DECKS.cards.sess = DECKS.cards.redo = DECKS.cards.undo = DECKS.diagrams.undo = null;
+  S.ctopic = key; DECKS.cards.cur = DECKS.diagrams.cur = null; cQ = null; TEUStocks.resetRwe(); TEUAir.resetRwe(); DECKS.cards.sess = DECKS.cards.redo = DECKS.cards.undo = DECKS.diagrams.undo = null;
   if (S.cq) { S.cq = ""; $("#csearch").value = ""; }
   renderAll();
 }
@@ -991,7 +997,8 @@ document.addEventListener("keydown", ev => {
   const free = !tg.closest("main button, main input, main summary, main a");
   const n = "1234".includes(ev.key) && ev.key.length === 1 ? +ev.key - 1 : -1;
   if (S.view === "notes" && worldOf() === "board" && TEUStocks.key(ev)) return;
-  if (S.view === "rwe") { TEUStocks.rweKey(ev, free); return; }
+  if (S.view === "notes" && worldOf() === "terminal" && TEUAir.key(ev)) return;
+  if (S.view === "rwe") { (worldOf() === "terminal" ? TEUAir : TEUStocks).rweKey(ev, free); return; }
   const D = DECKS[S.view];
   if (D && (ev.key === "u" || ev.key === "U") && D.undo) { deckUndo(S.view); return; }
   if (D && !D.cur && ev.key === "Enter" && free && $("[data-redrill]")) { ev.preventDefault(); $("[data-redrill]").click(); return; }

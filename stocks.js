@@ -628,7 +628,7 @@ window.TEUStocks = (() => {
   }
   function renderRwe(el) {
     if (rhost !== el) { rhost = el; wireRwe(el); }
-    if (worldOf() !== "board") { el.innerHTML = `<div class="empty">Real-world examples are drilled in Unit 3. <button class="btn" data-ctopic="u3">Open Unit 3</button></div>`; return; }
+    if (worldOf() !== "board") { el.innerHTML = `<div class="empty">Real-world examples are drilled inside Units 2 and 3. <button class="btn" data-ctopic="u2">Open Unit 2</button> <button class="btn" data-ctopic="u3">Open Unit 3</button></div>`; return; }
     if (!rwe().length) { el.innerHTML = `<div class="empty">No Unit 3 examples loaded.</div>`; return; }
     const xs = rPool(), n = rScope(), q = rQueue();
     const seg = `<div class="sx-seg" role="group" aria-label="Drill type">${Object.entries(RM).map(([k, v]) => `<button data-rx="mode" data-v="${k}" aria-pressed="${R.mode === k}">${v} <kbd aria-label="Shift ${v[0]}">⇧${v[0]}</kbd></button>`).join("")}</div>`;
@@ -717,6 +717,7 @@ window.TEUStocks = (() => {
   const listMore = () => { R.batch += BATCH; R.cur = null; R.focusCard = true; renderRwe(rhost); };
   function wireRwe(el) {
     el.addEventListener("click", ev => {
+      if (worldOf() !== "board") return;             // Unit 2 drills its own examples in the same box
       const b = ev.target.closest("button"); if (!b || !el.contains(b)) return;
       const d = b.dataset;
       if (d.rx === "mode") setMode(d.v);
