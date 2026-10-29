@@ -5,7 +5,7 @@
    drilled in the Examples tab. Loaded before app.js and only reads its globals when called. */
 window.TEUAir = (() => {
   const UIK = "teu-air";
-  const ui = { seen: {}, board: {}, rmode: "recall" };
+  const ui = { seen: {}, board: {}, rmode: "browse" };
   try { const u = JSON.parse(localStorage.getItem(UIK)) || {}; for (const k of ["seen", "board"]) if (u[k] && typeof u[k] === "object") ui[k] = u[k]; if (typeof u.rmode === "string") ui.rmode = u.rmode; } catch {}
   const saveUi = () => { try { localStorage.setItem(UIK, JSON.stringify(ui)); } catch {} };
   const MILES = [0, 40, 120, 160];                       // per grade: Forgot, Shaky, Got it, Easy
@@ -93,8 +93,9 @@ window.TEUAir = (() => {
       </div>
       <div class="air-lower">${passportHTML(gs)}
         <section class="air-duty" aria-label="Duty free: real-world examples"><p class="k">Duty free</p><h2>${ex.length} real-world examples for Unit 2</h2>
-          <p>Recent cases from around the world, ranked within each gate, with the story, three numbers and the “but” to recall for a Paper 1 answer.${exDue ? ` <b>${exDue} due.</b>` : ""}</p>
-          <button class="air-btn" data-view="rwe">Drill examples <kbd>E</kbd></button></section></div>
+          <p>Recent cases from around the world, each with a story, three numbers and a “but” for a Paper 1 answer. Open one to read it at its gate.${exDue ? ` <b>${exDue} due.</b>` : ""}</p>
+          <div class="air-dir">${gs.map(g => { const ys = ex.filter(e => e.n === g.n); return ys.length ? `<div class="row"><span class="g">${g.gate}</span><div>${ys.map(e => `<button class="air-chip" data-airex="${esc(e.key)}" aria-label="${esc(e.mem.tag)}: ${esc(e.title)}. Opens at gate ${g.gate}">${esc(e.mem.tag)}</button>`).join("")}</div></div>` : ""; }).join("")}</div>
+          <div class="air-acts"><button class="air-btn" data-view="rwe">Browse and drill <kbd>E</kbd></button></div></section></div>
     </div>`;
   }
   const wayHTML = n => `<nav class="air-way" aria-label="Piers">
@@ -317,6 +318,7 @@ window.TEUAir = (() => {
         ${seen ? `<button class="air-link light" data-air="replay">Watch it leave again</button>` : ""}</div>
       <p class="air-legend"><i class="lg due"></i>Due <i class="lg late"></i>Overdue <i class="lg new"></i>New <i class="lg wait"></i>Waiting, not due yet <i class="lg gone"></i>Empty seat: mastered, so that term is on the plane and its window is lit</p>
       <p class="air-big">${esc(t.big)}</p>
+      ${dutyHTML(n, sec)}
       <div class="air-grid">
         <div>
           ${sec("Passenger list", `${g.terms.length} definitions to learn word for word, weakest first`, `<div class="air-manifest">${order.map(j => pax(g, j)).join("")}</div>`)}
@@ -328,14 +330,22 @@ window.TEUAir = (() => {
           ${t.diagrams.length ? sec("Window seat", "diagrams to draw", `<div class="air-window">${t.diagrams.map(dg => diagramFig({ ...dg, hl: dg.hl && !t.hl })).join("")}</div>`) : ""}
           ${t.formulas.length ? sec("Fare rules", "formulas and calculations", `<table class="ftable">${t.formulas.map(f => `<tr><td style="width:34%"><b>${esc(f.name)}</b>${hlMark(f.hl && !t.hl)}</td><td><span class="f">${esc(f.f)}</span>${f.note ? `<p class="note" style="margin-top:4px">${esc(f.note)}</p>` : ""}</td></tr>`).join("")}</table>`) : ""}
           ${t.mnemonics.length ? sec("Memory aids", "", `<div class="mnem">${t.mnemonics.map(([a, b]) => `<div><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("")}</div>`) : ""}
-          ${sec("Duty free", "real-world examples", ex.length ? `<div class="air-dutylist">${ex.map(exHTML).join("")}</div><button class="air-btn ghost" data-view="rwe">Drill ${ex.length === 1 ? "this example" : `these ${ex.length} examples`} <kbd>E</kbd></button>` : `<p class="note">No examples for this gate yet.</p>`)}
         </div>
       </div>
       <div class="pager">${pv ? `<button class="btn" data-ctopic="${pv.n}">Back: Gate ${gateOf(pv.n)} ${esc(pv.short)}</button>` : `<button class="btn" data-ctopic="u2">Departures</button>`}${nx ? `<button class="btn" data-ctopic="${nx.n}">Next: Gate ${gateOf(nx.n)} ${esc(nx.short)}</button>` : ""}</div>
     </div>`;
   }
+  // The gate's own examples first, then ones from other gates that also fit here
+  function dutyHTML(n, sec) {
+    const ex = rwe().filter(e => e.topics.includes(n)), own = ex.filter(e => e.n === n), also = ex.filter(e => e.n !== n);
+    if (!ex.length) return sec("Duty free", "real-world examples", `<p class="note">No examples for this gate yet.</p>`);
+    return `<section class="air-sec air-dutysec" id="airDuty"><h3>Duty free <span>${ex.length} real-world example${ex.length === 1 ? "" : "s"} for this gate: open one to read it</span></h3>
+      <div class="air-dutylist">${own.map(exHTML).join("")}</div>
+      ${also.length ? `<p class="air-also">Also useful here, from other gates</p><div class="air-dutylist">${also.map(exHTML).join("")}</div>` : ""}
+      <div class="air-acts"><button class="air-btn ghost" data-view="rwe">Drill ${ex.length === 1 ? "this example" : `these ${ex.length} examples`} <kbd>E</kbd></button></div></section>`;
+  }
   const rankLine = e => `<p class="air-rank">Ranked <b>${e.rank} of ${e.of}</b> for gate ${gateOf(e.n)} on exam value (${e.score} of 100 for relevance, evaluation, data and recency: our rating, not an examiner's)</p>`;
-  const exHTML = e => `<details class="air-ex"><summary><span class="code">${esc(e.tk)}</span><span><b>${esc(e.mem.tag)}</b><span class="t">${esc(e.title)} · ${esc(e.region)} · ${esc(e.years)}</span></span>${prog(e.id) ? stateTag(e.id) : ""}</summary>
+  const exHTML = e => `<details class="air-ex" data-ex="${esc(e.key)}"><summary><span class="code">${esc(e.tk)}</span><span><b>${esc(e.mem.tag)}</b><span class="t">${esc(e.title)} · ${esc(e.region)} · ${esc(e.years)}</span></span>${prog(e.id) ? stateTag(e.id) : `<span class="gate">${gateOf(e.n)}</span>`}</summary>
     <div class="air-exbody">${storyHTML(e.mem)}${numsHTML(e.mem)}<p class="use"><b>Use it for</b> ${esc(e.mem.use)}</p>${butHTML(e.mem)}${rankLine(e)}
     <details class="more"><summary>Facts, diagram, evaluation and sources</summary>${factSheet(e)}</details></div></details>`;
 
@@ -433,6 +443,14 @@ window.TEUAir = (() => {
       <div class="stub" aria-hidden="true"><div class="fields"><div><span>Gate</span><b>${gateOf(x.n)}</b></div><div><span>Seat</span><b>${seat}</b></div><div><span>Flight</span><b>${flightOf(x.n)}</b></div><div><span>Class</span><b>${x.hl ? "HL" : "SL/HL"}</b></div></div><div class="barcode"></div><p>Tear here when you grade</p></div></div>`;
   }
   document.addEventListener("click", ev => {
+    const x = ev.target.closest("[data-airex]"); if (!x) return;
+    ev.stopPropagation();
+    const e = rwe().find(e => e.key === x.dataset.airex); if (!e) return;
+    setScope(e.n); show("notes");
+    const d = document.querySelector(`#notes [data-ex="${CSS.escape(e.key)}"]`); if (!d) return;
+    d.open = true; d.scrollIntoView({ block: "start", behavior: reduce() ? "auto" : "smooth" }); d.querySelector("summary").focus({ preventScroll: true });
+  }, true);
+  document.addEventListener("click", ev => {
     const b = ev.target.closest("[data-airgo]"); if (!b) return;
     ev.stopPropagation(); setScope(b.dataset.airgo); show("notes"); window.scrollTo({ top: 0 });
   }, true);
@@ -449,9 +467,9 @@ window.TEUAir = (() => {
     return rweList;
   }
   const RBY = id => rwe().find(e => e.id === id);
-  const RM = { recall: "Recall", numbers: "Numbers", pick: "Pick the example" };
+  const RM = { browse: "Browse", recall: "Recall", numbers: "Numbers", pick: "Pick the example" };
   const BATCH = 6;                                   // new examples per batch, so a cold start stays short
-  const R = { mode: RM[ui.rmode] ? ui.rmode : "recall", cur: null, flipped: false, sess: null, undo: null, redo: null, num: null, pick: null, batch: BATCH, newDone: 0, ticks: new Set(), touched: false, focusCard: false };
+  const R = { mode: RM[ui.rmode] ? ui.rmode : "browse", cur: null, flipped: false, sess: null, undo: null, redo: null, num: null, pick: null, batch: BATCH, newDone: 0, ticks: new Set(), touched: false, focusCard: false };
   let rhost = null;
   const rScope = () => CT[S.ctopic]?.unit === "2" ? S.ctopic : "u2";
   const rPool = () => { const n = rScope(); return n === "u2" ? rwe() : rwe().filter(e => e.topics.includes(n)); };
@@ -524,7 +542,11 @@ window.TEUAir = (() => {
     const seg = `<div class="air-seg" role="group" aria-label="Drill type">${Object.entries(RM).map(([k, v]) => `<button data-rx="mode" data-v="${k}" aria-pressed="${R.mode === k}">${v} <kbd aria-label="Shift ${v[0]}">⇧${v[0]}</kbd></button>`).join("")}</div>`;
     let body = "";
     if (!xs.length) body = `<div class="empty">No examples for ${esc(where)} yet. <button class="btn" data-ctopic="u2">Use all of Unit 2</button></div>`;
-    else if (R.mode === "recall") {
+    else if (R.mode === "browse") {
+      const groups = (n === "u2" ? subs().map(t => t.n) : [n]).map(k => [k, xs.filter(e => n === "u2" ? e.n === k : true)]).filter(([, ys]) => ys.length);
+      body = `<div class="progress-line"><span>${xs.length} example${xs.length === 1 ? "" : "s"} in ${esc(where)}. Open any one to read it; drill them with Recall when you're ready.</span><span><button class="air-link" data-rx="mode" data-v="recall">Start drilling <kbd>⇧R</kbd></button></span></div>
+        ${groups.map(([k, ys]) => `<section class="air-browse"><h3><span class="g">${gateOf(k)}</span>${k} ${esc(CT[k].short)} <small>${ys.length}</small></h3><div class="air-dutylist">${ys.map(exHTML).join("")}</div></section>`).join("")}`;
+    } else if (R.mode === "recall") {
       if (!R.cur || !q.some(e => e.id === R.cur)) { R.cur = q[0]?.id || null; R.flipped = false; }
       const left = unlisted();
       const info = `<div class="progress-line"><span>${q.length ? `${q.length} to drill in ${esc(where)}, about ${Math.max(1, Math.round(q.length * 1.5))} min` : `Nothing due in ${esc(where)}`}${R.sess?.n ? ` · ${R.sess.n} drilled this session` : ""}</span><span>${xs.length} examples${left ? ` · ${left} not started` : ""}</span></div>`;
@@ -629,7 +651,8 @@ window.TEUAir = (() => {
   function rweKey(ev, free) {
     const k = ev.key, typing = ev.target.id === "rNumIn", lk = k.length === 1 ? k.toLowerCase() : "";
     if (typing) { if (k === "Enter") { ev.preventDefault(); rCheck(ev.shiftKey); } return; }
-    if (ev.shiftKey && (lk === "r" || lk === "n" || lk === "p")) return setMode({ r: "recall", n: "numbers", p: "pick" }[lk]);
+    if (ev.shiftKey && (lk === "b" || lk === "r" || lk === "n" || lk === "p")) return setMode({ b: "browse", r: "recall", n: "numbers", p: "pick" }[lk]);
+    if (R.mode === "browse") return;
     const n = "1234".includes(k) && k.length === 1 ? +k - 1 : -1;
     if (R.mode === "numbers") { if (k === "Enter" && R.num?.answered) { ev.preventDefault(); rNewNum(); renderRwe(rhost); } return; }
     if (R.mode === "pick") {

@@ -273,7 +273,7 @@ function applyWorld() {
   document.body.dataset.sec = S.sec;
   document.body.dataset.view = S.view;
   $("#tab-rwe").hidden = S.sec !== "course" || (w !== "board" && w !== "terminal");
-  $("#rweSub").textContent = w === "terminal" ? "The best real-world examples for Unit 2, sold in the terminal's duty free. Recall is graded and scheduled like your flashcards; Numbers and Pick the example are practice."
+  $("#rweSub").textContent = w === "terminal" ? "The best real-world examples for Unit 2, sold in the terminal's duty free. Browse them by gate, or drill them: Recall is graded and scheduled like your flashcards; Numbers and Pick the example are practice."
     : "The best real-world examples for Unit 3, each one a stock you trade by recalling it. Recall is graded and moves prices; Numbers and Pick the example are practice.";
   document.querySelector('meta[name="theme-color"]').content = w === "board" ? "#000000" : w === "terminal" ? "#16363F" : getComputedStyle(document.documentElement).getPropertyValue("--bar").trim() || "#1C2126";
   renderTicker();

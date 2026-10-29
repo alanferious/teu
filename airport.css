@@ -173,6 +173,22 @@ body[data-world="terminal"][data-view="notes"] #view-notes .view-head { display:
 .use { font-size: 15px; color: var(--ink-2); margin-top: 8px; }
 .use b { color: var(--ink); margin-right: 6px; }
 .air-rank { font-size: 13.5px; color: var(--ink-2); margin-top: 8px; }
+.air-ex > summary .gate { font: 700 13px var(--f-board); color: var(--teal); padding-top: 4px; }
+.air-acts { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.air-also { font: 800 12.5px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); margin-top: 6px; }
+.air-dutysec { padding-bottom: 8px; }
+/* the departures directory: every example, by gate, one tap from its card */
+.air-dir { display: grid; border-top: 1px solid var(--rule); }
+.air-dir .row { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+.air-dir .g { font: 700 14px var(--f-board); color: var(--teal); }
+.air-dir .row > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.air-chip { background: var(--paper-hi); border: 1.5px solid var(--teal); color: var(--teal-d); font-weight: 700; font-size: 14px; padding: 4px 10px; min-height: 32px; text-align: left; }
+@media (hover: hover) and (pointer: fine) { .air-chip:hover { background: var(--teal); color: var(--paper-hi); } }
+.air-chip:active { transform: scale(.97); }
+.air-browse { display: grid; gap: 8px; margin-bottom: 22px; max-width: 980px; }
+.air-browse h3 { display: flex; align-items: baseline; gap: 10px; font-size: 19px; font-weight: 800; color: var(--teal-d); }
+.air-browse h3 .g { font: 700 15px var(--f-board); background: var(--mustard); color: var(--ink); padding: 2px 8px; }
+.air-browse h3 small { font: 700 13px var(--f-board); color: var(--ink-2); }
 
 /* ---------- Boarding pass (flashcards) and duty-free receipt (examples) ---------- */
 .air-itin { display: flex; gap: 8px 22px; flex-wrap: wrap; align-items: baseline; background: var(--teal-d); color: var(--paper-hi); padding: 11px 18px; font-size: 14.5px; max-width: 980px; margin-bottom: 14px; }
