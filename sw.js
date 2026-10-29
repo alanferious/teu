@@ -1,11 +1,11 @@
 // TEU offline copy. Network first, so a new version shows up as soon as you're online;
 // the cache answers when there is no connection.
-const CACHE = "teu-v9";
+const CACHE = "teu-v10";
 const CORE = [
-  "./", "index.html", "styles.css", "stocks.css", "airport.css", "app.js", "stocks.js", "airport.js", "ship.js", "data/examples.js", "data/course.js", "data/macro.js", "data/micro.js", "manifest.webmanifest",
+  "./", "index.html", "styles.css", "stocks.css", "airport.css", "chart.css", "app.js", "stocks.js", "airport.js", "chart.js", "ship.js", "data/examples.js", "data/course.js", "data/macro.js", "data/micro.js", "data/world.js", "manifest.webmanifest",
   "fonts/BarlowSemiCondensed-400.woff2", "fonts/BarlowSemiCondensed-400i.woff2", "fonts/BarlowSemiCondensed-500.woff2",
   "fonts/BarlowSemiCondensed-600.woff2", "fonts/BarlowSemiCondensed-700.woff2",
-  "fonts/SairaStencilOne-400.woff2", "fonts/AtkinsonHyperlegibleNext-var.woff2", "fonts/AtkinsonHyperlegibleNext-var-ext.woff2", "fonts/AtkinsonHyperlegibleMono-var.woff2",
+  "fonts/SairaStencilOne-400.woff2", "fonts/AtkinsonHyperlegibleNext-var.woff2", "fonts/AtkinsonHyperlegibleNext-var-ext.woff2", "fonts/AtkinsonHyperlegibleMono-var.woff2", "fonts/LibreCaslonText-400.woff2", "fonts/LibreCaslonText-400i.woff2", "fonts/LibreCaslonText-700.woff2", "fonts/LibreFranklin-var.woff2",
   "icons/favicon.ico", "icons/favicon-32x32.png", "icons/android-chrome-192x192.png",
 ];
 

@@ -266,7 +266,7 @@ const minutes = (n, per) => { const m = Math.max(1, Math.round(n * per / 60)); r
 
 // ---------- World ----------
 const scopeUnit = () => S.ctopic === "all" ? null : S.ctopic[0] === "u" ? S.ctopic.slice(1) : S.ctopic.split(".")[0];
-const worldOf = () => S.sec === "bank" ? "manifest" : ({ 2: "terminal", 3: "board", 4: "manifest" })[scopeUnit()] || "port";
+const worldOf = () => S.sec === "bank" ? "manifest" : ({ 2: "terminal", 3: "board", 4: "chart" })[scopeUnit()] || "port";
 function applyWorld() {
   const w = worldOf();
   document.body.dataset.world = w;
@@ -275,7 +275,7 @@ function applyWorld() {
   $("#tab-rwe").hidden = S.sec !== "course" || (w !== "board" && w !== "terminal");
   $("#rweSub").textContent = w === "terminal" ? "The best real-world examples for Unit 2, sold in the terminal's duty free. Browse them by gate, or drill them: Recall is graded and scheduled like your flashcards; Numbers and Pick the example are practice."
     : "The best real-world examples for Unit 3, each one a stock you trade by recalling it. Recall is graded and moves prices; Numbers and Pick the example are practice.";
-  document.querySelector('meta[name="theme-color"]').content = w === "board" ? "#000000" : w === "terminal" ? "#16363F" : getComputedStyle(document.documentElement).getPropertyValue("--bar").trim() || "#1C2126";
+  document.querySelector('meta[name="theme-color"]').content = w === "board" ? "#000000" : w === "terminal" ? "#16363F" : w === "chart" ? "#1F2C38" : getComputedStyle(document.documentElement).getPropertyValue("--bar").trim() || "#1C2126";
   renderTicker();
 }
 
@@ -330,7 +330,7 @@ function renderStats() {
     const ids = [...CDEFS, ...CDIAG].map(x => x.id);
     const due = ids.filter(id => prog(id) && isDue(id)).length;
     const mastered = ids.filter(id => stateOf(id) === "mastered").length;
-    $("#stats").innerHTML = worldOf() === "terminal" ? TEUAir.stats() : `${CDEFS.length} terms · ${CDIAG.length} diagrams · <b>${mastered}</b> mastered · <b>${due}</b> due`;
+    $("#stats").innerHTML = worldOf() === "terminal" ? TEUAir.stats() : worldOf() === "chart" ? TEUChart.stats() : `${CDEFS.length} terms · ${CDIAG.length} diagrams · <b>${mastered}</b> mastered · <b>${due}</b> due`;
     const badge = xs => { const n = xs.filter(x => inScope(x) && prog(x.id) && isDue(x.id)).length; return n ? String(n) : ""; };
     $("#cardsBadge").textContent = badge(CDEFS);
     $("#diagBadge").textContent = badge(CDIAG);
@@ -507,8 +507,8 @@ function drillQueue() {
   return [...due, ...fresh, ...later];
 }
 function gradeRow(attr, id) {
-  // Unit 2's airport names each outcome too: missed the flight, standby, boarded, upgraded
-  const w = worldOf() === "terminal" ? TEUAir.GRADE_WORDS : null, lbl = g => (w ? w[g] + " · " : "") + previewInterval(id, g);
+  // Units 2 and 4 name each outcome in their own world too (missed the flight; ran aground)
+  const w = worldOf() === "terminal" ? TEUAir.GRADE_WORDS : worldOf() === "chart" ? TEUChart.GRADE_WORDS : null, lbl = g => (w ? w[g] + " · " : "") + previewInterval(id, g);
   return `<div class="grades">
     <button class="btn g-again" ${attr}="again">Forgot<small>${lbl("again")}</small></button>
     <button class="btn" ${attr}="hard">Shaky<small>${lbl("hard")}</small></button>
@@ -792,6 +792,7 @@ function renderNotes() {
   $("#notesSub").hidden = !!t;
   const q = S.cq.trim();
   if (worldOf() === "terminal" && q.length < 2) { TEUAir.render($("#notes")); return; }
+  if (worldOf() === "chart" && q.length < 2) { TEUChart.render($("#notes")); return; }
   $("#notes").innerHTML = q.length > 1 ? searchHits(q) : t ? topicArticle(t) : topicIndex();
 }
 
@@ -814,8 +815,8 @@ function renderDeck(name) {
   const n = xs.filter(x => isDue(x.id)).length;
   $(D.info).textContent = `${n} due or new in ${scopeName()}${n ? ", " + minutes(n, D.per) : ""}${D.done ? ` · ${D.done} reviewed this session` : ""}`;
   if (!D.cur || !q.find(x => x.id === D.cur)) { D.cur = q[0]?.id || null; D.flipped = false; D.call = 0; }
-  const stx = worldOf() === "board" && name === "cards", air = worldOf() === "terminal" && name === "cards";
-  const trade = stx ? TEUStocks.tradeBar(D) : air ? TEUAir.itinerary() : "";
+  const stx = worldOf() === "board" && name === "cards", air = worldOf() === "terminal" && name === "cards", sea = worldOf() === "chart" && name === "cards";
+  const trade = stx ? TEUStocks.tradeBar(D) : air ? TEUAir.itinerary() : sea ? TEUChart.strip() : "";
   if (!D.cur) {
     const recap = stx ? TEUStocks.recap(D) : "";
     if (recap) { $(D.el).innerHTML = recap; return; }
@@ -837,7 +838,7 @@ function renderDeck(name) {
       ? `${x.spec ? drawDiagram(x.spec) : ""}${x.steps?.length ? `<ol style="margin:0;padding-left:20px;display:grid;gap:3px;max-width:70ch">${x.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}${gradeRow("data-cgrade", x.id)}`
       : `<p class="prompt">Sketch it on paper: label both axes, draw and label every curve, mark the equilibrium and any shift or shaded area.</p>${flipButton('data-cflip="1"')}`);
   }
-  $(D.el).innerHTML = air && x.unit === "2" ? TEUAir.pass(x, body, $("#cardsRev").checked && !D.flipped) : `${trade}<div class="flash">${head}${quote}${body}</div>`;
+  $(D.el).innerHTML = air && x.unit === "2" ? TEUAir.pass(x, body, $("#cardsRev").checked && !D.flipped) : sea && x.unit === "4" ? TEUChart.log(x, body) : `${trade}<div class="flash">${head}${quote}${body}</div>`;
 }
 function deckUndo(name) {
   const D = DECKS[name], u = D.undo; if (!u) return;
@@ -998,6 +999,7 @@ document.addEventListener("keydown", ev => {
   const n = "1234".includes(ev.key) && ev.key.length === 1 ? +ev.key - 1 : -1;
   if (S.view === "notes" && worldOf() === "board" && TEUStocks.key(ev)) return;
   if (S.view === "notes" && worldOf() === "terminal" && TEUAir.key(ev)) return;
+  if (S.view === "notes" && worldOf() === "chart" && TEUChart.key(ev)) return;
   if (S.view === "rwe") { (worldOf() === "terminal" ? TEUAir : TEUStocks).rweKey(ev, free); return; }
   const D = DECKS[S.view];
   if (D && (ev.key === "u" || ev.key === "U") && D.undo) { deckUndo(S.view); return; }
