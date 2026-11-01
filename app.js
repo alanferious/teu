@@ -270,6 +270,7 @@ const worldOf = () => S.sec === "bank" ? "manifest" : ({ 2: "terminal", 3: "boar
 function applyWorld() {
   const w = worldOf();
   document.body.dataset.world = w;
+  document.body.dataset.unit = scopeUnit() || "all";
   document.body.dataset.sec = S.sec;
   document.body.dataset.view = S.view;
   $("#tab-rwe").hidden = S.sec !== "course" || (w !== "board" && w !== "terminal");
@@ -381,21 +382,22 @@ const scopeName = () => S.ctopic === "all" ? "the whole course" : S.ctopic[0] ==
 const courseIds = pred => [...CDEFS, ...CDIAG].filter(pred).map(x => x.id);
 const masteryOf = ids => ids.length ? ids.filter(id => stateOf(id) === "mastered").length / ids.length : 0;
 
+// Empty bars are hidden until something in the subtopic is mastered.
+const meter = ids => { const m = masteryOf(ids); return `<span class="meter${m ? "" : " none"}"><i style="--m:${m}"></i></span>`; };
 function renderRail() {
   if (S.sec !== "course") { $("#rail").innerHTML = ""; return; }
-  const board = worldOf() === "board", air = worldOf() === "terminal";
+  const board = worldOf() === "board";
   const allIds = courseIds(() => true);
-  let html = `<div class="rail-all"><button class="topic" data-ctopic="all" aria-pressed="${S.ctopic === "all"}" style="--uc:var(--ink)"><span class="n">1–4</span><span class="nm">Whole course</span><span class="ct">${allIds.length}</span><span class="meter"><i style="--m:${masteryOf(allIds)}"></i></span></button></div>`;
+  let html = `<div class="rail-all"><button class="topic" data-ctopic="all" aria-pressed="${S.ctopic === "all"}" style="--uc:var(--ink)"><span class="n">1–4</span><span class="nm">Whole course</span><span class="ct">${CDEFS.length}</span>${meter(allIds)}</button></div>`;
   for (const u of UNITS) {
     const ts = COURSE.filter(t => t.unit === u.u);
     if (!ts.length) continue;
-    html += `<div class="unit-blk" data-u="${u.u}" style="--uc:var(--u${u.u})"><button class="unit-btn" data-ctopic="u${u.u}" aria-pressed="${S.ctopic === "u" + u.u}"><span class="tab">${u.u}</span><span>${esc(u.name)}</span><small>${courseIds(x => x.unit === u.u).length}</small></button>` +
+    html += `<div class="unit-blk" data-u="${u.u}" style="--uc:var(--u${u.u})"><button class="unit-btn" data-ctopic="u${u.u}" aria-pressed="${S.ctopic === "u" + u.u}"><span class="tab">${u.u}</span><span>${esc(u.name)}</span><small>${CDEFS.filter(x => x.unit === u.u).length}</small></button>` +
       ts.map(t => {
         const ids = courseIds(x => x.n === t.n);
-        let right = `<span class="ct">${ids.length}</span>`;
-        if (air && u.u === "2") right = `<span class="ct gate">${TEUAir.gateOf(t.n)}</span>`;
+        let right = `<span class="ct" title="${t.defs.length} terms to learn">${t.defs.length}</span>`;
         if (board && u.u === "3") { const xs = CDEFS.filter(d => d.n === t.n), ix = indexAt(xs, now()), chg = ix - indexAt(xs, now() - DAY); right = `<span class="idx${chg < -.004 ? " dn" : chg > .004 ? " up" : ""}">${fmt(ix)}</span>`; }
-        return `<button class="topic" data-ctopic="${t.n}" aria-pressed="${S.ctopic === t.n}"><span class="n">${t.n}</span><span class="nm">${esc(t.short)}${hlMark(t.hl)}</span>${right}<span class="meter"><i style="--m:${masteryOf(ids)}"></i></span></button>`;
+        return `<button class="topic" data-ctopic="${t.n}" aria-pressed="${S.ctopic === t.n}"><span class="n">${t.n}</span><span class="nm">${esc(t.short)}${hlMark(t.hl)}</span>${right}${meter(ids)}</button>`;
       }).join("") + `</div>`;
   }
   $("#rail").innerHTML = html;

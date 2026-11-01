@@ -153,6 +153,8 @@ select.field { cursor: pointer; }
 .topic .ct { font-size: 13px; color: var(--ink-2); }
 .topic .meter { grid-column: 2 / 4; height: 3px; background: var(--rule); position: relative; overflow: hidden; }
 .topic .meter i { position: absolute; inset: 0; background: var(--uc, var(--ink)); transform-origin: left; transform: scaleX(var(--m, 0)); transition: transform .5s var(--ease-out); }
+.topic .meter.none { background: none; }
+body[data-world="port"][data-unit="1"] .unit-blk:not([data-u="1"]) .topic { display: none; }
 .topic[aria-pressed="true"] { font-weight: 700; background: color-mix(in srgb, var(--ochre) 24%, transparent); }
 .topic[aria-pressed="true"] .n { color: var(--ink); }
 @media (hover: hover) and (pointer: fine) { .topic:hover .nm, .unit-btn:hover > span:nth-child(2) { text-decoration: underline; text-underline-offset: 3px; } }

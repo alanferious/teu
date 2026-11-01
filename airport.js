@@ -21,7 +21,7 @@ window.TEUAir = (() => {
 
   // ---------- Model ----------
   const subs = () => COURSE.filter(t => t.unit === "2");
-  const gateOf = n => { const i = +n.split(".")[1]; return (i <= 6 ? "A" : "B") + i; };
+  const gateOf = n => n;
   const flightOf = n => "TU " + (200 + +n.split(".")[1]);
   const termsOf = n => CDEFS.filter(d => d.n === n);
   const pad2 = x => String(x).padStart(2, "0");
@@ -65,7 +65,7 @@ window.TEUAir = (() => {
   function rowHTML(g) {
     const [k, label] = g.status, nextSay = g.next !== "--:--" && g.next !== "NOW" ? `, next cards ${g.next}` : "";
     return `<button class="air-row" data-ctopic="${g.n}" data-row="${g.n}" aria-label="${g.n} ${esc(g.t.name)}${g.t.hl ? ", higher level" : ""}. Gate ${g.gate}. ${capWord(label)}${nextSay}.">
-      <span>${cells(g.next, 5)}</span><span>${cells(g.flight.replace(" ", ""), 5)}</span><span class="dest">${cells(DEST[g.n], 17)}${g.t.hl ? `<span class="air-hl">HL</span>` : ""}</span><span>${cells(g.gate, 3)}</span><span>${cells(label, 15, "st-" + k)}</span>
+      <span>${cells(g.next, 5)}</span><span>${cells(g.flight.replace(" ", ""), 5)}</span><span class="dest">${cells(DEST[g.n], 17)}${g.t.hl ? `<span class="air-hl">HL</span>` : ""}</span><span>${cells(g.gate, 4)}</span><span>${cells(label, 15, "st-" + k)}</span>
       <span class="plain" aria-hidden="true"><b>${g.gate}</b><span>${esc(g.t.short)}${g.t.hl ? ` <span class="air-hl">HL</span>` : ""}</span><span class="st-${k}">${esc(capWord(label))}</span></span></button>`;
   }
   const capWord = s => s.charAt(0) + s.slice(1).toLowerCase();
@@ -99,8 +99,8 @@ window.TEUAir = (() => {
     </div>`;
   }
   const wayHTML = n => `<nav class="air-way" aria-label="Piers">
-      <button data-ctopic="${n ? "u2" : "2.1"}">${n ? `<span class="box"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M20 13H6M11 8l-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/></svg></span>Departures` : `<span class="box">A</span>Gates A1–A6 <small>Markets</small>`}</button>
-      ${n ? `<span class="here">Gate ${gateOf(n)} · ${esc(CT[n].short)}</span>` : `<button data-ctopic="2.7"><small>Government and market failure</small> Gates B7–B12 <span class="box">B</span></button>`}</nav>`;
+      <button data-ctopic="${n ? "u2" : "2.1"}">${n ? `<span class="box"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M20 13H6M11 8l-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/></svg></span>Departures` : `Gates 2.1–2.6 <small>Markets</small>`}</button>
+      ${n ? `<span class="here">Gate ${n} · ${esc(CT[n].short)}</span>` : `<button data-ctopic="2.7"><small>Government and market failure</small> Gates 2.7–2.12</button>`}</nav>`;
   // The board flips once when a row changes (after a study session), not on every visit
   function flipChanged(el, gs) {
     const changed = gs.filter(g => ui.board[g.n] !== g.status[1] + g.next);
@@ -262,7 +262,7 @@ window.TEUAir = (() => {
     // overhead gate sign, desk screen, boarding lane
     const signT = g.departed ? "Departed" : g.t.short.length > 17 ? g.t.short.slice(0, 16) + "…" : g.t.short;
     s.push(`<path d="M80 0 V58 M262 0 V58" stroke="#16363F" stroke-width="2.5"/><rect x="40" y="58" width="270" height="74" fill="#16363F"/><rect x="40" y="58" width="86" height="74" fill="#E1A63A"/>`);
-    s.push(`<text x="83" y="110" text-anchor="middle" font-size="${g.gate.length > 2 ? 32 : 40}" font-weight="800" fill="#16363F" ${F}>${g.gate}</text><text x="140" y="88" font-size="13" font-weight="700" fill="#A9BDC0" ${F} letter-spacing="1.5">GATE</text><text id="signT" x="140" y="114" font-size="20" font-weight="800" fill="#EFEAE0" ${F}>${esc(signT)}</text>`);
+    s.push(`<text x="83" y="110" text-anchor="middle" font-size="${g.gate.length > 3 ? 30 : 36}" font-weight="800" fill="#16363F" ${F}>${g.gate}</text><text x="140" y="88" font-size="13" font-weight="700" fill="#A9BDC0" ${F} letter-spacing="1.5">GATE</text><text id="signT" x="140" y="114" font-size="20" font-weight="800" fill="#EFEAE0" ${F}>${esc(signT)}</text>`);
     s.push(`<rect x="212" y="300" width="8" height="70" fill="#16363F"/><rect x="118" y="236" width="196" height="104" fill="#0F2429"/>`);
     s.push(`<g ${M} font-weight="700"><text x="132" y="262" font-size="15" fill="#E1A63A">${g.flight}  ${g.gate}</text><text x="132" y="284" font-size="12" fill="#EFEAE0">${esc(DEST[g.n])}</text><text id="fidsS" x="132" y="306" font-size="13" fill="#E1A63A">${g.status[1].slice(0, 22)}</text><text id="fidsN" x="132" y="326" font-size="11" fill="#C9D5D6">${g.departed ? "DEP " + dateOf(g.when) : g.due ? `GROUP 1  ${g.due} DUE` : g.fresh ? `${g.fresh} TO CHECK IN` : "NEXT " + g.next}</text></g>`);
     s.push(`<rect x="92" y="370" width="250" height="64" fill="#1F4D5A"/><rect x="86" y="362" width="262" height="10" fill="#16363F"/><rect x="112" y="388" width="70" height="8" fill="#E1A63A"/><rect x="92" y="420" width="250" height="14" fill="#C4472C"/>`);
@@ -296,7 +296,7 @@ window.TEUAir = (() => {
   function retractBridge(svg) {
     [["#bridgeCab", "translateX(-70px)"], ["#bridgeTunnel", "scaleX(.857)"], ["#bridgeDrive", "translateX(-53px)"]].forEach(([s, t]) => { const el = svg.querySelector(s); if (el) el.style.transform = t; });
   }
-  const pax = (g, i) => { const d = g.terms[i], st = g.st[i]; return `<div class="air-pax" id="pax-${i}"><span class="seat">${esc(d.tk)}</span><div><b>${esc(d.t)}${hlMark(d.hl && !g.t.hl)}</b><p>${esc(d.d)}</p></div><span class="ps p-${st}">${PAX_WORD[st]}</span></div>`; };
+  const pax = (g, i) => { const d = g.terms[i], st = g.st[i]; return `<div class="air-pax" id="pax-${i}"><div><b>${esc(d.t)}${hlMark(d.hl && !g.t.hl)}</b><p>${esc(d.d)}</p></div><span class="ps p-${st}">${PAX_WORD[st]}</span></div>`; };
   const ORDER = { late: 0, board: 1, new: 2, wait: 3, gone: 4 };
   function gateHTML(n) {
     const g = gate(n), t = g.t, i = COURSE.indexOf(t), prev = COURSE[i - 1], next = COURSE[i + 1], ex = rwe().filter(e => e.topics.includes(n));
@@ -340,12 +340,13 @@ window.TEUAir = (() => {
     const ex = rwe().filter(e => e.topics.includes(n)), own = ex.filter(e => e.n === n), also = ex.filter(e => e.n !== n);
     if (!ex.length) return sec("Duty free", "real-world examples", `<p class="note">No examples for this gate yet.</p>`);
     return `<section class="air-sec air-dutysec" id="airDuty"><h3>Duty free <span>${ex.length} real-world example${ex.length === 1 ? "" : "s"} for this gate: open one to read it</span></h3>
-      <div class="air-dutylist">${own.map(exHTML).join("")}</div>
-      ${also.length ? `<p class="air-also">Also useful here, from other gates</p><div class="air-dutylist">${also.map(exHTML).join("")}</div>` : ""}
+      <div class="air-dutylist">${own.map(e => exHTML(e, n)).join("")}</div>
+      ${also.length ? `<p class="air-also">Also useful here, from other gates</p><div class="air-dutylist">${also.map(e => exHTML(e, n)).join("")}</div>` : ""}
       <div class="air-acts"><button class="air-btn ghost" data-view="rwe">Drill ${ex.length === 1 ? "this example" : `these ${ex.length} examples`} <kbd>E</kbd></button></div></section>`;
   }
   const rankLine = e => `<p class="air-rank">Ranked <b>${e.rank} of ${e.of}</b> for gate ${gateOf(e.n)} on exam value (${e.score} of 100 for relevance, evaluation, data and recency: our rating, not an examiner's)</p>`;
-  const exHTML = e => `<details class="air-ex" data-ex="${esc(e.key)}"><summary><span class="code">${esc(e.tk)}</span><span><b>${esc(e.mem.tag)}</b><span class="t">${esc(e.title)} · ${esc(e.region)} · ${esc(e.years)}</span></span>${prog(e.id) ? stateTag(e.id) : `<span class="gate">${gateOf(e.n)}</span>`}</summary>
+  // The subtopic number only shows on examples from somewhere else
+  const exHTML = (e, here) => `<details class="air-ex" data-ex="${esc(e.key)}"><summary><span><b>${esc(e.mem.tag)}</b><span class="t">${esc(e.title)} · ${esc(e.region)} · ${esc(e.years)}</span></span>${prog(e.id) ? stateTag(e.id) : e.n !== here ? `<span class="gate">${e.n}</span>` : ""}</summary>
     <div class="air-exbody">${storyHTML(e.mem)}${numsHTML(e.mem)}<p class="use"><b>Use it for</b> ${esc(e.mem.use)}</p>${butHTML(e.mem)}${rankLine(e)}
     <details class="more"><summary>Facts, diagram, evaluation and sources</summary>${factSheet(e)}</details></div></details>`;
 
@@ -520,7 +521,7 @@ window.TEUAir = (() => {
     renderRwe(rhost); say("Answer shown. Tick what you got right, then grade.");
     rhost.querySelector(".air-bp")?.focus({ preventScroll: true });
   }
-  const receipt = (e, inner, fields = true) => `<div class="air-bp air-receipt" tabindex="-1"><div class="band"><span>TEU Air · Duty free · Real-world example</span><span>Gate <b>${gateOf(e.n)}</b> · ${e.n} ${esc(CT[e.n].short)}</span></div>
+  const receipt = (e, inner, fields = true) => `<div class="air-bp air-receipt" tabindex="-1"><div class="band"><span>TEU Air · Duty free · Real-world example</span><span>Gate <b>${e.n}</b> · ${esc(CT[e.n].short)}</span></div>
     <div class="main">${fields ? `<div class="fields"><div><span>Code</span><b>${esc(e.tk)}</b></div><div><span>Region</span><b>${esc(e.region)}</b></div><div><span>Years</span><b>${esc(e.years)}</b></div><div><span>Status</span><b>${prog(e.id) ? stateLabel[stateOf(e.id)] : "New"}</b></div></div>` : ""}${inner}</div></div>`;
   function lastLine() {
     const L = R.sess?.last; if (!L) return "";
@@ -532,20 +533,20 @@ window.TEUAir = (() => {
     const s = R.sess; if (!s || !s.n) return "";
     const missed = s.missed.map(RBY).filter(Boolean);
     return `<section class="air-landed" aria-label="Session summary"><p class="k">Landed</p><h3>You drilled ${s.n} example${s.n === 1 ? "" : "s"} and earned ${milesStr(s.miles)} miles.</h3>
-      ${missed.length ? `<p>To drill again:</p><ul>${missed.map(e => `<li><b>${esc(e.tk)}</b> ${esc(e.mem.tag)}</li>`).join("")}</ul><button class="air-btn" data-rredo="1">Drill these ${missed.length} again <kbd>Enter</kbd></button>`
+      ${missed.length ? `<p>To drill again:</p><ul>${missed.map(e => `<li>${esc(e.mem.tag)}</li>`).join("")}</ul><button class="air-btn" data-rredo="1">Drill these ${missed.length} again <kbd>Enter</kbd></button>`
         : `<p>Nothing missed. Every example here is up to date.</p>`}</section>`;
   }
   function renderRwe(el) {
     if (rhost !== el) { rhost = el; wireRwe(el); }
     if (!rwe().length) { el.innerHTML = `<div class="empty">No Unit 2 examples loaded.</div>`; return; }
-    const xs = rPool(), n = rScope(), q = rQueue(), where = n === "u2" ? "Unit 2" : `gate ${gateOf(n)} (${n} ${CT[n].short})`;
+    const xs = rPool(), n = rScope(), q = rQueue(), where = n === "u2" ? "Unit 2" : `gate ${n} (${CT[n].short})`;
     const seg = `<div class="air-seg" role="group" aria-label="Drill type">${Object.entries(RM).map(([k, v]) => `<button data-rx="mode" data-v="${k}" aria-pressed="${R.mode === k}">${v} <kbd aria-label="Shift ${v[0]}">⇧${v[0]}</kbd></button>`).join("")}</div>`;
     let body = "";
     if (!xs.length) body = `<div class="empty">No examples for ${esc(where)} yet. <button class="btn" data-ctopic="u2">Use all of Unit 2</button></div>`;
     else if (R.mode === "browse") {
       const groups = (n === "u2" ? subs().map(t => t.n) : [n]).map(k => [k, xs.filter(e => n === "u2" ? e.n === k : true)]).filter(([, ys]) => ys.length);
       body = `<div class="progress-line"><span>${xs.length} example${xs.length === 1 ? "" : "s"} in ${esc(where)}. Open any one to read it; drill them with Recall when you're ready.</span><span><button class="air-link" data-rx="mode" data-v="recall">Start drilling <kbd>⇧R</kbd></button></span></div>
-        ${groups.map(([k, ys]) => `<section class="air-browse"><h3><span class="g">${gateOf(k)}</span>${k} ${esc(CT[k].short)} <small>${ys.length}</small></h3><div class="air-dutylist">${ys.map(exHTML).join("")}</div></section>`).join("")}`;
+        ${groups.map(([k, ys]) => `<section class="air-browse"><h3><span class="g">${k}</span>${esc(CT[k].short)} <small>${ys.length}</small></h3><div class="air-dutylist">${ys.map(e => exHTML(e, k)).join("")}</div></section>`).join("")}`;
     } else if (R.mode === "recall") {
       if (!R.cur || !q.some(e => e.id === R.cur)) { R.cur = q[0]?.id || null; R.flipped = false; }
       const left = unlisted();
@@ -576,7 +577,7 @@ window.TEUAir = (() => {
         body = `<div class="quiz" tabindex="-1"><p class="note">Which example would you use for…</p><p class="question">${esc(Q.concept)}</p>
           <div class="options">${Q.opts.map((id, i) => { const o = RBY(id), cl = Q.choice ? (id === Q.id ? "right" : id === Q.choice ? "wrong" : "") : "";
             const sr = Q.choice ? (id === Q.id ? `<span class="sr-only">Correct answer. </span>` : id === Q.choice ? `<span class="sr-only">Your choice. </span>` : "") : "";
-            return `<button class="opt ${cl}" data-rx="opt" data-v="${esc(id)}" ${Q.choice ? "disabled" : ""}><span class="k">${i + 1}</span><b>${sr}${esc(o.tk)} · ${esc(o.mem.tag)}</b><span class="meta">${esc(o.region)}${Q.choice ? ` · gate ${gateOf(o.n)}, ${o.n} ${CT[o.n].short}` : ""}</span></button>`; }).join("")}</div>
+            return `<button class="opt ${cl}" data-rx="opt" data-v="${esc(id)}" ${Q.choice ? "disabled" : ""}><span class="k">${i + 1}</span><b>${sr}${esc(o.mem.tag)}</b><span class="meta">${esc(o.region)}${Q.choice ? ` · gate ${o.n}, ${CT[o.n].short}` : ""}</span></button>`; }).join("")}</div>
           ${Q.choice ? `<div class="feedback ${Q.choice === Q.id ? "ok" : "no"}"><b>${Q.choice === Q.id ? "Right." : "Not this time."}</b>
             ${Q.choice === Q.id ? `<p class="detail"><b>${esc(t.mem.tag)}</b>: ${esc(t.hook)}</p>` : `<p class="detail">You picked <b>${esc(ch.mem.tag)}</b>, which is for ${esc(ch.mem.use)}.</p><p class="detail"><b>${esc(t.mem.tag)}</b> fits “${esc(Q.concept)}”: ${esc(t.hook)}</p>`}</div>
             <div><button class="air-btn" data-rx="nextpick">Next question <kbd>Enter</kbd></button></div>` : `<p class="keys">Keys <kbd>1</kbd> to <kbd>4</kbd></p>`}
